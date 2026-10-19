@@ -20,7 +20,12 @@ return Application::configure(basePath: dirname(__DIR__))
             'role' => RequireRole::class,
         ]);
         $middleware->append(SecurityHeaders::class);
-        $middleware->redirectGuestsTo(fn () => route('login'));
+        $middleware->redirectGuestsTo(fn (Request $request) => $request->routeIs('customer.*')
+            ? route('customer.login')
+            : route('login'));
+        $middleware->redirectUsersTo(fn (Request $request) => $request->routeIs('customer.*')
+            ? route('customer.home')
+            : route('dashboard'));
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

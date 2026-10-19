@@ -11,6 +11,9 @@ return [
     // Diskon maksimum (%) yang boleh diterapkan kasir tanpa approval manager.
     'max_cashier_discount_percent' => (int) env('POS_MAX_CASHIER_DISCOUNT', 10),
 
+    // Pendaftaran pelanggan baru ditutup sampai teks legal/privacy disetujui (Gate 0).
+    'customer_registration_open' => (bool) env('POS_CUSTOMER_REGISTRATION_OPEN', false),
+
     'currency' => 'IDR',
     'timezone' => 'Asia/Jakarta',
 ];

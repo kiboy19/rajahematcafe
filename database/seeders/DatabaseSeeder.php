@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Enums\UserRole;
 use App\Models\CafeTable;
 use App\Models\Category;
+use App\Models\Customer;
 use App\Models\MenuItem;
 use App\Models\User;
 use Illuminate\Database\Seeder;
@@ -34,6 +35,17 @@ class DatabaseSeeder extends Seeder
                 ],
             );
         }
+
+        // Akun pelanggan demo (hanya untuk uji lokal/browser).
+        Customer::firstOrCreate(
+            ['email' => 'pelanggan@rajahemat.test'],
+            [
+                'name' => 'Dewi Lestari',
+                'phone' => '081234567890',
+                'password' => Hash::make('password'),
+                'is_active' => true,
+            ],
+        );
 
         // Kategori & Menu Contoh (mengikuti Opsi A Warm Modern)
         $catalog = [

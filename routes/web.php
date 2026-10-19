@@ -4,6 +4,8 @@ use App\Http\Controllers\Auth\StaffLoginController;
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\CashierSessionApprovalController;
 use App\Http\Controllers\CashierSessionController;
+use App\Http\Controllers\Customer\CustomerAccountController;
+use App\Http\Controllers\Customer\CustomerAuthController;
 use App\Http\Controllers\KdsController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\PaymentController;
@@ -52,5 +54,24 @@ Route::middleware(['auth', 'staff.active'])->group(function () {
     Route::middleware('role:owner,manager,dapur')->group(function () {
         Route::get('/kds', [KdsController::class, 'index'])->name('kds.index');
         Route::patch('/kds/{order}', [KdsController::class, 'updateStatus'])->name('kds.status');
+    });
+});
+
+/* --------------------------------------------------------------------
+ | Kanal pelanggan — guard `customer`, terpisah dari staf.
+ | --------------------------------------------------------------------
+ */
+Route::name('customer.')->group(function () {
+    Route::middleware('guest:customer')->group(function () {
+        Route::get('/masuk', [CustomerAuthController::class, 'showLogin'])->name('login');
+        Route::post('/masuk', [CustomerAuthController::class, 'login'])->name('login.store');
+        Route::get('/daftar', [CustomerAuthController::class, 'showRegister'])->name('register');
+        Route::post('/daftar', [CustomerAuthController::class, 'register'])
+            ->middleware('throttle:10,1')->name('register.store');
+    });
+
+    Route::middleware('auth:customer')->group(function () {
+        Route::post('/keluar', [CustomerAuthController::class, 'logout'])->name('logout');
+        Route::get('/akun', [CustomerAccountController::class, 'show'])->name('home');
     });
 });
