@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Perbandingan Arah Desain — Rajahemat Cafe POS</title>
+<style>
+  /* Chrome halaman dibuat netral gelap supaya tidak memihak salah satu opsi. */
+  :root { --chrome:#0F172A; --chrome-2:#1E293B; --chrome-line:#334155; --chrome-ink:#E2E8F0; --chrome-ink-2:#94A3B8; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--chrome); color:var(--chrome-ink);
+         font: 15px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  .wrap { max-width: 1180px; margin:0 auto; padding: 28px 20px 80px; }
+  h1 { font-size: 26px; margin:0 0 6px; }
+  .lede { color: var(--chrome-ink-2); max-width: 78ch; margin: 0 0 22px; }
+  .lede b { color: var(--chrome-ink); }
+  .how { background: var(--chrome-2); border:1px solid var(--chrome-line); border-radius:12px; padding:14px 16px; margin: 0 0 30px; }
+  .how ul { margin:8px 0 0; padding-left: 20px; color: var(--chrome-ink-2); }
+  .how li { margin: 3px 0; }
+
+  .opt { background: var(--chrome-2); border:1px solid var(--chrome-line); border-radius:16px;
+         padding:18px; margin:0 0 26px; }
+  .opt-head { display:flex; flex-wrap:wrap; gap:14px; align-items:flex-start; justify-content:space-between; }
+  .opt-title { font-size:19px; font-weight:700; margin:0 0 2px; }
+  .opt-title span { font-weight:400; color:var(--chrome-ink-2); font-size:14px; }
+  .opt-desc { color:var(--chrome-ink-2); max-width:70ch; margin:4px 0 0; font-size:14px; }
+  .meta { display:flex; gap:18px; flex-wrap:wrap; font-size:13px; color:var(--chrome-ink-2); margin-top:10px; }
+  .meta b { color:var(--chrome-ink); font-weight:600; }
+
+  .swatches { display:flex; gap:6px; flex-wrap:wrap; }
+  .sw { width:44px; }
+  .sw i { display:block; height:26px; border-radius:6px; border:1px solid rgba(255,255,255,.18); }
+  .sw b { display:block; font-size:9px; color:var(--chrome-ink-2); font-weight:500; margin-top:3px;
+          font-family: ui-monospace, Consolas, monospace; }
+
+  /* Stage = kanvas ber-tema. Semua token visual opsi hidup di sini. */
+  .stage { margin-top:16px; background: var(--bg); color: var(--ink);
+           border-radius: var(--radius); padding:16px;
+           display:grid; grid-template-columns: minmax(0,1.6fr) minmax(0,1fr); gap:16px; }
+  @media (max-width: 900px) { .stage { grid-template-columns: 1fr; } }
+  .frame { background: var(--surface); border:1px solid var(--line); border-radius: var(--radius);
+           padding:12px; box-shadow: 0 1px 2px rgba(15,23,42,.06); }
+  .frame-cap { font-size:11px; letter-spacing:.08em; text-transform:uppercase;
+               color:var(--ink-2); margin:0 0 8px; font-weight:600; }
+  .pos-top { display:flex; justify-content:space-between; gap:10px; font-size:12px; color:var(--ink-2);
+             border-bottom:1px solid var(--line); padding-bottom:8px; margin-bottom:10px; }
+  .pos-grid { display:grid; grid-template-columns: minmax(0,1fr) 210px; gap:12px; }
+  @media (max-width: 620px) { .pos-grid { grid-template-columns: 1fr; } }
+  .tabs { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px; }
+  .tab { font-size:11px; padding:4px 10px; border:1px solid var(--line); border-radius:999px; color:var(--ink-2); }
+  .tab.on { background: var(--primary); color: var(--on-primary); border-color: transparent; font-weight:600; }
+  .tiles { display:grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap:9px; }
+  .tile { border:1px solid var(--line); border-radius: var(--radius); padding:8px; background: var(--surface); }
+  .thumb { aspect-ratio: 4/3; border-radius: calc(var(--radius) - 4px); background: var(--thumb); margin-bottom:6px; }
+  .tile b { display:block; font-size:12px; font-weight:600; }
+  .tile i { font-style:normal; font-size:11.5px; color: var(--ink-2); }
+  .ooh { display:block; margin-top:5px; font-size:10.5px; color: var(--bad); font-weight:600; }
+  .tile.dis { opacity:.55; }
+  .cart { border-left:1px solid var(--line); padding-left:12px; }
+  @media (max-width: 620px) { .cart { border-left:0; border-top:1px solid var(--line); padding:12px 0 0; } }
+  .cl { display:flex; justify-content:space-between; gap:8px; font-size:12.5px; padding:5px 0; border-bottom:1px dashed var(--line); }
+  .cl span:last-child { font-variant-numeric: tabular-nums; font-weight:600; }
+  .cl em { display:block; font-style:normal; font-size:11px; color:var(--ink-2); }
+  .tot { display:flex; justify-content:space-between; font-size:12.5px; color:var(--ink-2); padding:3px 0; }
+  .tot.sum { color: var(--ink); font-weight:700; font-size:15px; border-top:1px solid var(--line); margin-top:6px; padding-top:7px; }
+  .tot span:last-child { font-variant-numeric: tabular-nums; }
+
+  .btn { font: inherit; font-size:12.5px; padding:7px 11px; border-radius: calc(var(--radius) - 3px);
+         border:1px solid var(--line); background: var(--surface); color: var(--ink); cursor:pointer; }
+  .btn:focus-visible { outline:2px solid var(--primary); outline-offset:2px; }
+  .btn-primary { background: var(--primary); color: var(--on-primary); border-color: transparent; font-weight:700; }
+  .btn-block { width:100%; margin-top:10px; padding:12px; font-size:14px; }
+  .btn-ghost { border-style:dashed; color: var(--ink-2); }
+
+  .badge { font-size:10.5px; font-weight:700; padding:2px 8px; border-radius:999px; white-space:nowrap; }
+  .b-info { background: var(--info-bg); color: var(--info); }
+  .b-warn { background: var(--warn-bg); color: var(--warn); }
+  .b-ok   { background: var(--ok-bg);   color: var(--ok); }
+  .b-bad  { background: var(--bad-bg);  color: var(--bad); }
+  .b-mute { background: var(--thumb);   color: var(--ink-2); }
+
+  .mob { width:100%; max-width:330px; margin:0 auto; background: var(--bg); border:1px solid var(--line);
+         border-radius: 26px; padding:10px; }
+  .mob-in { background: var(--surface); border-radius: 18px; overflow:hidden; border:1px solid var(--line); }
+  .status { display:flex; justify-content:space-between; font-size:10px; color: var(--ink-2); padding:6px 10px; }
+  .mob-head { padding:2px 12px 10px; border-bottom:1px solid var(--line); }
+  .mob-head h3 { margin:0; font-size:15px; font-family: var(--font-head); }
+  .mob-head p { margin:2px 0 0; font-size:11px; color: var(--ink-2); }
+  .mob-body { padding:12px; display:grid; gap:10px; }
+  .bal { background: var(--primary); color: var(--on-primary); border-radius: calc(var(--radius) + 2px); padding:12px; }
+  .bal small { opacity:.85; font-size:10.5px; letter-spacing:.06em; text-transform:uppercase; }
+  .bal strong { display:block; font-size:22px; font-variant-numeric: tabular-nums; margin:2px 0 9px; }
+  .bal .btn { background: rgba(255,255,255,.16); border-color: rgba(255,255,255,.4); color:#fff; font-weight:600; }
+  .mcard { border:1px solid var(--line); border-radius: var(--radius); padding:9px; display:flex; gap:9px; align-items:center; }
+  .mcard .thumb { width:48px; aspect-ratio:1; margin:0; flex:none; }
+  .mcard b { font-size:12px; display:block; }
+  .mcard i { font-style:normal; font-size:11.5px; color: var(--ink-2); }
+  .mnav { display:grid; grid-template-columns: repeat(4,1fr); border-top:1px solid var(--line); font-size:9.5px; text-align:center; }
+  .mnav div { padding:8px 2px 10px; color: var(--ink-2); }
+  .mnav div.on { color: var(--primary); font-weight:700; }
+
+  .strip { margin-top:16px; display:grid; grid-template-columns: minmax(0,1.6fr) minmax(0,1fr); gap:16px; }
+  @media (max-width: 900px) { .strip { grid-template-columns: 1fr; } }
+  .cmp { background: var(--surface); border:1px solid var(--line); border-radius: var(--radius); padding:14px; }
+  .cmp-row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:12px; }
+  .inp { font: inherit; font-size:12.5px; padding:8px 10px; border:1px solid var(--line);
+         border-radius: calc(var(--radius) - 3px); background: var(--surface); color: var(--ink); min-width:170px; }
+  table.mini { width:100%; border-collapse: collapse; font-size:12px; margin-top:4px; }
+  table.mini th { text-align:left; color: var(--ink-2); font-weight:600; font-size:10.5px;
+                  text-transform:uppercase; letter-spacing:.05em; padding:5px 6px 6px; border-bottom:1px solid var(--line); }
+  table.mini td { padding:6px; border-bottom:1px solid var(--line); }
+  table.mini td.n { text-align:right; font-variant-numeric: tabular-nums; font-weight:600; }
+  .receipt { font-family: ui-monospace, Consolas, monospace; font-size:11px; line-height:1.5;
+             background: var(--surface); border:1px dashed var(--line); border-radius: 6px; padding:12px; color: var(--ink); }
+  .receipt .r-h { text-align:center; font-weight:700; }
+  .receipt .r-l { display:flex; justify-content:space-between; }
+  .kds { background:#0B0F19; color:#E5E7EB; border-radius: var(--radius); padding:12px; }
+  .kds-card { border:1px solid #334155; border-left:4px solid var(--warn); border-radius:8px; padding:10px; }
+  .kds-card b { font-size:13px; }
+  .kds-card p { margin:6px 0 0; font-size:12.5px; color:#CBD5E1; }
+  .note { font-size:12.5px; color: var(--chrome-ink-2); margin-top:12px; }
+  .note b { color: var(--chrome-ink); }
+  .pick { display:inline-block; margin-top:12px; font-size:13px; background:var(--chrome); border:1px solid var(--chrome-line);
+          border-radius:999px; padding:6px 12px; color:var(--chrome-ink); }
+  code { background: rgba(148,163,184,.18); padding:1px 5px; border-radius:4px; font-size:12px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Perbandingan 4 Arah Desain — Rajahemat Cafe POS</h1>
+  <p class="lede">Semua opsi di bawah memakai <b>struktur wireframe dan data yang identik</b>. Yang berubah hanya palet, tipografi, radius, ketebalan border, dan kepadatan. Jadi perbandingannya adil: bukan soal layout, tapi soal rasa dan keterbacaan.</p>
+
+  <div class="how">
+    <b>Cara menilai (2 menit per opsi):</b>
+    <ul>
+      <li><b>Layar kasir:</b> mampukah mata menemukan total dan tombol bayar dalam &lt;1 detik? Angka Rupiah terbaca jelas?</li>
+      <li><b>Badge status:</b> Baru / Diproses / Siap / Batal harus langsung dibedakan tanpa membaca teks.</li>
+      <li><b>Struk 58mm:</b> kepadatan warna besar tidak membantu kertas thermal; yang penting kontras teks.</li>
+      <li><b>Sisi pelanggan:</b> hangat &amp; mengundang, atau netral &amp; cepat? Pilih yang cocok dengan brand kafe Anda.</li>
+    </ul>
+  </div>
+
+  <!-- ============ OPSI A ============ -->
+  <section class="opt" data-opt="a" style="
+      --bg:#FAF7F0; --surface:#FFFFFF; --ink:#2A1D14; --ink-2:#6B5A4A; --line:#E7E0D5;
+      --primary:#A35D2A; --on-primary:#FFFFFF; --accent:#3B2418;
+      --ok:#15803D; --ok-bg:#E7F5EC; --warn:#B45309; --warn-bg:#FDF2E3;
+      --info:#1D4ED8; --info-bg:#E8EEFE; --bad:#B91C1C; --bad-bg:#FBE9E9;
+      --radius:12px; --thumb:#EFE6D9;
+      --font-head: Georgia, 'Times New Roman', serif;
+      --font-body: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;">
+    <div class="opt-head">
+      <div>
+        <h2 class="opt-title">Opsi A — Warm Modern Café <span>· brand kafe dominan</span></h2>
+        <p class="opt-desc">Espresso–cream–caramel. Terasa seperti kafe sejak detik pertama. Tokoh utamanya adalah suasana, bukan tabel data.</p>
+        <div class="meta">
+          <span>Tipografi: <b>serif display (Playfair Display)</b> + body sans hangat (Karla)</span>
+          <span>Radius: <b>12px</b></span>
+          <span>Border: <b>hangat tipis</b></span>
+        </div>
+      </div>
+      <div class="swatches">
+        <div class="sw"><i style="background:#3B2418"></i><b>3B2418</b></div>
+        <div class="sw"><i style="background:#A35D2A"></i><b>A35D2A</b></div>
+        <div class="sw"><i style="background:#FAF7F0"></i><b>FAF7F0</b></div>
+        <div class="sw"><i style="background:#E7E0D5"></i><b>E7E0D5</b></div>
+        <div class="sw"><i style="background:#15803D"></i><b>15803D</b></div>
+        <div class="sw"><i style="background:#B91C1C"></i><b>B91C1C</b></div>
+      </div>
+    </div>
+    <div class="stage"><div class="frame host-pos"></div><div class="frame host-mob"></div></div>
+    <div class="strip"><div class="host-cmp"></div><div class="host-side"></div></div>
+  </section>
+
+  <!-- ============ OPSI B ============ -->
+  <section class="opt" data-opt="b" style="
+      --bg:#F8FAFC; --surface:#FFFFFF; --ink:#0F172A; --ink-2:#475569; --line:#CBD5E1;
+      --primary:#1D4ED8; --on-primary:#FFFFFF; --accent:#D97706;
+      --ok:#047857; --ok-bg:#E6F5F0; --warn:#B45309; --warn-bg:#FEF3E2;
+      --info:#1D4ED8; --info-bg:#E8EEFE; --bad:#B91C1C; --bad-bg:#FEE9E9;
+      --radius:8px; --thumb:#E2E8F0;
+      --font-head: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+      --font-body: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;">
+    <div class="opt-head">
+      <div>
+        <h2 class="opt-title">Opsi B — Swiss Operational <span>· efisiensi kasir dominan</span></h2>
+        <p class="opt-desc">Minimalis, grid tegas, netral. Dioptimalkan untuk kecepatan memindai angka, tabel padat, dan pemakaian berjam-jam tanpa lelah visual.</p>
+        <div class="meta">
+          <span>Tipografi: <b>Inter saja</b> + angka tabular</span>
+          <span>Radius: <b>8px</b></span>
+          <span>Border: <b>1px netral</b></span>
+        </div>
+      </div>
+      <div class="swatches">
+        <div class="sw"><i style="background:#0F172A"></i><b>0F172A</b></div>
+        <div class="sw"><i style="background:#1D4ED8"></i><b>1D4ED8</b></div>
+        <div class="sw"><i style="background:#F8FAFC"></i><b>F8FAFC</b></div>
+        <div class="sw"><i style="background:#CBD5E1"></i><b>CBD5E1</b></div>
+        <div class="sw"><i style="background:#047857"></i><b>047857</b></div>
+        <div class="sw"><i style="background:#D97706"></i><b>D97706</b></div>
+      </div>
+    </div>
+    <div class="stage"><div class="frame host-pos"></div><div class="frame host-mob"></div></div>
+    <div class="strip"><div class="host-cmp"></div><div class="host-side"></div></div>
+  </section>
+
+  <!-- ============ OPSI C ============ -->
+  <section class="opt" data-opt="c" style="
+      --bg:#FFF9F2; --surface:#FFFFFF; --ink:#24211F; --ink-2:#5C5651; --line:#F0E6D8;
+      --primary:#C65D3A; --on-primary:#FFFFFF; --accent:#527A5A;
+      --ok:#3F7A4F; --ok-bg:#EAF5EC; --warn:#B45309; --warn-bg:#FDF0DF;
+      --info:#3757C9; --info-bg:#EAEEFB; --bad:#C0392B; --bad-bg:#FBEAE7;
+      --radius:18px; --thumb:#F3E7DA;
+      --font-head: 'Trebuchet MS', system-ui, sans-serif;
+      --font-body: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;">
+    <div class="opt-head">
+      <div>
+        <h2 class="opt-title">Opsi C — Friendly Contemporary <span>· pengalaman pelanggan dominan</span></h2>
+        <p class="opt-desc">Terracotta–leaf–sand dengan sudut membulat. Ramah dan kontemporer, paling nyaman untuk pelanggan; area staf perlu disiplin ekstra agar tetap cepat.</p>
+        <div class="meta">
+          <span>Tipografi: <b>sans rounded (Nunito/Karla)</b></span>
+          <span>Radius: <b>18px</b></span>
+          <span>Border: <b>lembut, area luas</b></span>
+        </div>
+      </div>
+      <div class="swatches">
+        <div class="sw"><i style="background:#24211F"></i><b>24211F</b></div>
+        <div class="sw"><i style="background:#C65D3A"></i><b>C65D3A</b></div>
+        <div class="sw"><i style="background:#527A5A"></i><b>527A5A</b></div>
+        <div class="sw"><i style="background:#FFF9F2"></i><b>FFF9F2</b></div>
+        <div class="sw"><i style="background:#3F7A4F"></i><b>3F7A4F</b></div>
+        <div class="sw"><i style="background:#C0392B"></i><b>C0392B</b></div>
+      </div>
+    </div>
+    <div class="stage"><div class="frame host-pos"></div><div class="frame host-mob"></div></div>
+    <div class="strip"><div class="host-cmp"></div><div class="host-side"></div></div>
+  </section>
+
+  <!-- ============ OPSI D ============ -->
+  <section class="opt" data-opt="d" style="
+      --bg:#F8FAFC; --surface:#FFFFFF; --ink:#0F172A; --ink-2:#475569; --line:#E2E8F0;
+      --primary:#1D4ED8; --on-primary:#FFFFFF; --accent:#D97706;
+      --ok:#047857; --ok-bg:#E6F5F0; --warn:#B45309; --warn-bg:#FEF3E2;
+      --info:#1D4ED8; --info-bg:#E8EEFE; --bad:#B91C1C; --bad-bg:#FEE9E9;
+      --radius:8px; --thumb:#E2E8F0;
+      --font-head: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+      --font-body: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;">
+    <div class="opt-head">
+      <div>
+        <h2 class="opt-title">Opsi D — Hybrid: staf Swiss, pelanggan Warm <span>· rekomendasi saya</span></h2>
+        <p class="opt-desc">Satu sistem, dua konteks. Area staf memakai netral + biru (cepat &amp; aman dibaca berjam-jam); portal pelanggan, struk, dan QR memakai cream + caramel hangat (beridentitas kafe). Token status tetap sama di keduanya.</p>
+        <div class="meta">
+          <span>Staf: <b>Inter/netral, radius 8px, primary biru</b></span>
+          <span>Pelanggan: <b>cream/caramel, radius 14px, serif display</b></span>
+          <span>Konsistensi: <b>badge &amp; status identik</b></span>
+        </div>
+      </div>
+      <div class="swatches">
+        <div class="sw"><i style="background:#1D4ED8"></i><b>staff</b></div>
+        <div class="sw"><i style="background:#0F172A"></i><b>0F172A</b></div>
+        <div class="sw"><i style="background:#A35D2A"></i><b>cust</b></div>
+        <div class="sw"><i style="background:#3B2418"></i><b>3B2418</b></div>
+        <div class="sw"><i style="background:#FAF7F0"></i><b>FAF7F0</b></div>
+        <div class="sw"><i style="background:#047857"></i><b>047857</b></div>
+      </div>
+    </div>
+    <div class="stage"><div class="frame host-pos"></div><div class="frame host-mob ctx-cust"></div></div>
+    <div class="strip"><div class="host-cmp"></div><div class="host-side"></div></div>
+  </section>
+
+  <p class="note"><b>Pertanyaan yang perlu Anda jawab dari preview ini:</b> mana yang paling cocok terlihat di layar kasir kafe Anda, dan mana yang paling mewakili brand kafe untuk pelanggan? Anda boleh menjawab “D, tapi badge-nya ikut B”, “A tapi kurangi cokelatnya”, dan seterusnya — campuran dipersilakan.</p>
+  <p class="note">Catatan teknis: preview ini memakai font sistem sebagai pengganti font web (Playfair/Karla/Inter/Nunito) agar bisa dibuka tanpa internet. Bentuk huruf final akan lebih halus; ukuran, jarak, dan kontras sudah mewakili.</p>
+</div>
+
+<!-- ============ Markup bersama (dipakai 4x) ============ -->
+<template id="tpl">
+  <div class="pos-demo">
+    <p class="frame-cap">Layar kasir (desktop 1366×768)</p>
+    <div class="pos-top">
+      <span><b>MASUKKAN POS</b> · Meja 04 · Dine-in</span>
+      <span>Kasir: Siti · Shift #12 <span class="badge b-ok">AKTIF</span></span>
+    </div>
+    <div class="pos-grid">
+      <div>
+        <div class="tabs">
+          <span class="tab on">Semua</span><span class="tab">Kopi</span><span class="tab">Non-Kopi</span><span class="tab">Makanan</span><span class="tab">Kue</span>
+        </div>
+        <div class="tiles">
+          <div class="tile"><div class="thumb"></div><b>Kopi Susu Aren</b><i>Rp20.000</i></div>
+          <div class="tile"><div class="thumb"></div><b>Single Origin V60</b><i>Rp25.000</i></div>
+          <div class="tile"><div class="thumb"></div><b>Spaghetti Aglio</b><i>Rp35.000</i></div>
+          <div class="tile"><div class="thumb"></div><b>Matcha Latte</b><i>Rp22.000</i></div>
+          <div class="tile dis"><div class="thumb"></div><b>Almond Croissant</b><i>Rp28.000</i><span class="ooh">STOK HABIS</span></div>
+          <div class="tile"><div class="thumb"></div><b>Americano</b><i>Rp18.000</i></div>
+        </div>
+      </div>
+      <div class="cart">
+        <p class="frame-cap">Tagihan #ORD-092</p>
+        <div class="cl"><span>2× Kopi Susu Aren<em>less sugar, es sedang</em></span><span>40.000</span></div>
+        <div class="cl"><span>1× Spaghetti Aglio<em>ekstra pedas</em></span><span>35.000</span></div>
+        <div class="tot"><span>Subtotal</span><span>75.000</span></div>
+        <div class="tot"><span>Diskon voucher</span><span>−6.000</span></div>
+        <div class="tot"><span>PB1 10% + SC 5%</span><span>10.350</span></div>
+        <div class="tot sum"><span>TOTAL</span><span>Rp79.350</span></div>
+        <button class="btn btn-ghost btn-block">Bersihkan / Simpan ke Meja</button>
+        <button class="btn btn-primary btn-block">BAYAR SEKARANG (F8)</button>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <p class="frame-cap">Portal pelanggan (mobile 360–430px)</p>
+    <div class="mob"><div class="mob-in">
+      <div class="status"><span>14:30</span><span>▮▮▮ ▾ 98%</span></div>
+      <div class="mob-head"><h3>Halo, Ariel</h3><p>Meja 04 · Rajahemat Cafe</p></div>
+      <div class="mob-body">
+        <div class="bal">
+          <small>Saldo dompet</small>
+          <strong>Rp150.000</strong>
+          <button class="btn">+ Isi saldo</button>
+        </div>
+        <button class="btn btn-primary">PESAN DARI MEJA INI</button>
+        <div class="mcard"><div class="thumb"></div><div><b>Kopi Susu Aren</b><i>Rp20.000</i></div></div>
+        <div class="mcard"><div class="thumb"></div><div><b>Nasi Ayam Teriyaki</b><i>Rp38.000</i></div></div>
+        <div class="mcard"><div class="thumb"></div><div><b>Order #ORD-092</b><i><span class="badge b-warn">DIPROSES</span></i></div></div>
+      </div>
+      <div class="mnav"><div class="on">Beranda</div><div>Menu</div><div>Dompet</div><div>Pesanan</div></div>
+    </div></div>
+  </div>
+
+  <div>
+    <p class="frame-cap">Komponen: tombol, field, badge status, tabel</p>
+    <div class="cmp-row">
+      <button class="btn btn-primary">Simpan</button>
+      <button class="btn">Batal</button>
+      <button class="btn btn-ghost">Cetak ulang struk</button>
+      <input class="inp" value="Cari menu / nomor nota…" readonly>
+    </div>
+    <div class="cmp-row">
+      <span class="badge b-info">BARU</span>
+      <span class="badge b-warn">DIPROSES</span>
+      <span class="badge b-ok">SIAP</span>
+      <span class="badge b-mute">SELESAI</span>
+      <span class="badge b-bad">DIBATALKAN</span>
+      <span class="badge b-ok">LUNAS</span>
+      <span class="badge b-warn">SEBAGIAN</span>
+    </div>
+    <table class="mini">
+      <thead><tr><th>No nota</th><th>Pelanggan</th><th>Metode</th><th>Status</th><th style="text-align:right">Total</th></tr></thead>
+      <tbody>
+        <tr><td>#ORD-091</td><td>Rian Hidayat</td><td>Tunai</td><td><span class="badge b-ok">LUNAS</span></td><td class="n">65.000</td></tr>
+        <tr><td>#ORD-090</td><td>Walk-in</td><td>QRIS</td><td><span class="badge b-warn">SEBAGIAN</span></td><td class="n">145.000</td></tr>
+        <tr><td>#ORD-089</td><td>Siska Putri</td><td>Saldo</td><td><span class="badge b-bad">REFUND</span></td><td class="n">110.000</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div>
+    <p class="frame-cap">Struk 58mm &amp; tiket dapur</p>
+    <div class="receipt">
+      <div class="r-h">RAJAHEMAT COFFEE</div>
+      <div class="r-h">Jl. Melati Raya 12, Tebet</div>
+      <div>--------------------------------</div>
+      <div class="r-l"><span>#ORD-092</span><span>14:28</span></div>
+      <div class="r-l"><span>2× Kopi Susu Aren</span><span>40.000</span></div>
+      <div class="r-l"><span>1× Spaghetti Aglio</span><span>35.000</span></div>
+      <div class="r-l"><span>TOTAL</span><span>79.350</span></div>
+      <div class="r-l"><span>BAYAR (Tunai)</span><span>100.000</span></div>
+      <div class="r-l"><span>KEMBALI</span><span>20.650</span></div>
+      <div>--------------------------------</div>
+      <div class="r-h">Terima kasih</div>
+    </div>
+    <div class="kds" style="margin-top:12px">
+      <div class="kds-card">
+        <b>TIKET #092 · MEJA 04</b>
+        <p>2× Kopi Susu Aren — less sugar, es sedang<br>1× Spaghetti Aglio — ekstra pedas</p>
+        <p><span class="badge b-warn">DIPROSES 9 MENIT</span></p>
+      </div>
+    </div>
+  </div>
+</template>
+
+<style>
+/* Opsi D: konteks pelanggan memakai token hangat, area staf tetap netral. */
+.opt[data-opt="d"] .ctx-cust {
+  --bg:#FAF7F0; --surface:#FFFFFF; --ink:#2A1D14; --ink-2:#6B5A4A; --line:#E7E0D5;
+  --primary:#A35D2A; --on-primary:#FFFFFF;
+  --ok:#15803D; --ok-bg:#E7F5EC; --warn:#B45309; --warn-bg:#FDF2E3;
+  --info:#1D4ED8; --info-bg:#E8EEFE; --bad:#B91C1C; --bad-bg:#FBE9E9;
+  --radius:14px; --thumb:#EFE6D9;
+  --font-head: Georgia, 'Times New Roman', serif;
+}
+.opt .frame { background: var(--surface); font-family: var(--font-body); }
+.opt .frame h3, .opt .bal strong, .opt .opt-title { font-family: var(--font-head); }
+</style>
+
+<script>
+  // Markup identik untuk 4 opsi; yang membedakan hanya token CSS per section.
+  const tpl = document.getElementById('tpl');
+  document.querySelectorAll('.opt').forEach(function (opt) {
+    const clone = tpl.content.cloneNode(true);
+    const divs = Array.from(clone.children);
+    if (divs.length >= 4) {
+      opt.querySelector('.host-pos').appendChild(divs[0]);
+      opt.querySelector('.host-mob').appendChild(divs[1]);
+      opt.querySelector('.host-cmp').appendChild(divs[2]);
+      opt.querySelector('.host-side').appendChild(divs[3]);
+    }
+  });
+</script>
+</body>
+</html>

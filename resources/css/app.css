@@ -1,0 +1,70 @@
+@import 'tailwindcss';
+
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+@source '../../app/**/*.php';
+
+/* Design System Opsi A — lihat Design-System-Opsi-A.md. Jangan menulis hex baru di komponen. */
+@theme {
+    --font-sans: 'Karla', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    --font-display: 'Playfair Display', Georgia, 'Times New Roman', serif;
+
+    --color-bg: #FAF7F0;
+    --color-surface: #FFFFFF;
+    --color-surface-2: #F5F0E8;
+    --color-thumb: #EFE6D9;
+
+    --color-ink: #2A1D14;
+    --color-ink-2: #6B5A4A;
+    --color-ink-on-dark: #FFF9F2;
+
+    --color-line: #E7E0D5;
+    --color-line-strong: #D6C9B6;
+
+    --color-primary: #A35D2A;
+    --color-primary-hover: #8A4B21;
+    --color-primary-press: #743F1B;
+    --color-accent: #3B2418;
+
+    --color-ok: #15803D;
+    --color-ok-bg: #E7F5EC;
+    --color-warn: #B45309;
+    --color-warn-bg: #FDF2E3;
+    --color-info: #1D4ED8;
+    --color-info-bg: #E8EEFE;
+    --color-bad: #B91C1C;
+    --color-bad-bg: #FBE9E9;
+
+    /* KDS dapur: tetap gelap untuk kontras ruang dapur. */
+    --color-kds-bg: #0B0F19;
+    --color-kds-card: #151B2B;
+    --color-kds-line: #334155;
+    --color-kds-ink: #E2E8F0;
+    --color-kds-muted: #94A3B8;
+
+    --radius-card: 12px;
+    --radius-input: 8px;
+
+    --shadow-1: 0 1px 2px rgba(58, 36, 24, .08);
+    --shadow-2: 0 8px 24px rgba(58, 36, 24, .14);
+}
+
+@layer base {
+    :focus-visible {
+        outline: 2px solid var(--color-primary);
+        outline-offset: 2px;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+            transition: none !important;
+            animation: none !important;
+        }
+    }
+}
+
+@utility tabular {
+    font-variant-numeric: tabular-nums;
+}

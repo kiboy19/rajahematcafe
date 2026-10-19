@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup 01 — POS Kasir · Opsi A Warm Modern</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Karla:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#FAF7F0;--surface:#FFFFFF;--surface-2:#F5F0E8;--thumb:#EFE6D9;
+    --ink:#2A1D14;--ink-2:#6B5A4A;--ink-on-dark:#FFF9F2;
+    --line:#E7E0D5;--line-strong:#D6C9B6;
+    --primary:#A35D2A;--primary-hover:#8A4B21;--primary-press:#743F1B;--accent:#3B2418;
+    --ok:#15803D;--ok-bg:#E7F5EC;--warn:#B45309;--warn-bg:#FDF2E3;
+    --info:#1D4ED8;--info-bg:#E8EEFE;--bad:#B91C1C;--bad-bg:#FBE9E9;
+    --r-card:12px;--r-input:8px;--r-pill:999px;
+    --shadow-1:0 1px 2px rgba(58,36,24,.08);--shadow-2:0 8px 24px rgba(58,36,24,.14);
+    --font-display:'Playfair Display',Georgia,serif;
+    --font-ui:'Karla',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font-ui);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+  button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+  .app{display:grid;grid-template-rows:56px 1fr;height:100vh}
+  @supports (height:100dvh){.app{height:100dvh}}
+
+  /* ============ Header ============ */
+  .top{display:flex;align-items:center;gap:18px;padding:0 18px;background:var(--surface);border-bottom:1px solid var(--line)}
+  .brand{display:flex;align-items:center;gap:10px;min-width:190px}
+  .brand-mark{width:30px;height:30px;border-radius:50%;background:var(--accent);color:var(--ink-on-dark);
+    display:grid;place-items:center;font-family:var(--font-display);font-size:15px;font-weight:700}
+  .brand b{font-family:var(--font-display);font-size:16px;letter-spacing:.01em;display:block;line-height:1.1}
+  .brand small{color:var(--ink-2);font-size:10.5px;letter-spacing:.09em;text-transform:uppercase}
+  .ctx{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .chip{display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 12px;border:1px solid var(--line);
+    border-radius:var(--r-pill);background:var(--surface);font-size:12.5px;font-weight:600}
+  .chip .dot{width:7px;height:7px;border-radius:50%;background:var(--ok)}
+  .chip.dine{background:var(--surface-2);border-color:var(--line-strong)}
+  .top-right{margin-left:auto;display:flex;align-items:center;gap:10px}
+  .who{text-align:right;font-size:12px;line-height:1.25}
+  .who b{display:block;font-size:12.5px}
+  .who span{color:var(--ink-2);font-size:11px}
+  .ghost{padding:0 12px;height:34px;border:1px solid var(--line);border-radius:var(--r-input);
+    font-size:12.5px;font-weight:600;background:var(--surface)}
+  .ghost:hover{background:var(--surface-2)}
+  .ghost:focus-visible,.btn:focus-visible,.tile:focus-visible,.qty button:focus-visible,
+  .tab:focus-visible,.pay-method:focus-visible,input:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+
+  /* ============ Kanvas ============ */
+  .main{display:grid;grid-template-columns:minmax(0,1fr) 372px;min-height:0}
+
+  /* Kiri: katalog */
+  .catalog{display:flex;flex-direction:column;min-height:0;padding:14px 16px 12px}
+  .catalog-top{display:flex;gap:10px;align-items:center;margin-bottom:12px}
+  .search{flex:1;position:relative}
+  .search input{width:100%;height:42px;border:1px solid var(--line-strong);border-radius:var(--r-input);
+    background:var(--surface);padding:0 40px 0 38px;font-size:13.5px;color:var(--ink)}
+  .search input::placeholder{color:var(--ink-2)}
+  .search .lu{position:absolute;left:12px;top:12px;color:var(--ink-2)}
+  .search kbd{position:absolute;right:10px;top:10px;font-family:var(--font-ui);font-size:10.5px;
+    color:var(--ink-2);border:1px solid var(--line);border-radius:4px;padding:2px 5px;background:var(--surface-2)}
+  .tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+  .tab{height:34px;padding:0 14px;border-radius:var(--r-pill);border:1px solid var(--line);
+    background:var(--surface);font-size:12.5px;font-weight:600;color:var(--ink-2)}
+  .tab:hover{border-color:var(--line-strong);color:var(--ink)}
+  .tab[aria-selected="true"]{background:var(--primary);border-color:transparent;color:#fff}
+
+  .grid-scroll{overflow:auto;min-height:0;padding:2px 4px 8px 2px;margin:-2px -4px -8px -2px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:12px}
+  .tile{text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-card);
+    padding:10px;box-shadow:var(--shadow-1);transition:transform var(--dur) ease,border-color var(--dur) ease;position:relative}
+  .tile:hover{border-color:var(--primary);transform:translateY(-1px)}
+  .tile:active{transform:translateY(0)}
+  .ph{aspect-ratio:4/3;border-radius:8px;background:var(--thumb);display:grid;place-items:center;color:#B9A78F;margin-bottom:8px}
+  .tile b{display:block;font-size:13px;font-weight:600;line-height:1.3;margin-bottom:3px}
+  .tile .meta{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+  .tile .price{font-variant-numeric:tabular-nums;font-weight:700;font-size:13px}
+  .tile .add{font-size:11px;font-weight:700;color:var(--primary)}
+  .tile[aria-disabled="true"]{opacity:.55;cursor:not-allowed}
+  .tile[aria-disabled="true"]:hover{transform:none;border-color:var(--line)}
+  .soldout{position:absolute;top:14px;left:14px;background:var(--bad-bg);color:var(--bad);
+    font-size:10px;font-weight:700;letter-spacing:.06em;padding:3px 7px;border-radius:var(--r-pill)}
+
+  /* Kanan: tagihan */
+  .cart{background:var(--surface);border-left:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
+  .cart-head{padding:14px 16px 12px;border-bottom:1px solid var(--line)}
+  .cart-head .row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .cart-head h2{margin:0;font-size:14px;font-weight:700}
+  .badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;letter-spacing:.04em;
+    text-transform:uppercase;padding:3px 9px;border-radius:var(--r-pill);white-space:nowrap}
+  .badge-info{background:var(--info-bg);color:var(--info)}
+  .badge-warn{background:var(--warn-bg);color:var(--warn)}
+  .badge-ok{background:var(--ok-bg);color:var(--ok)}
+  .badge-mute{background:var(--surface-2);color:var(--ink-2)}
+  .badge-bad{background:var(--bad-bg);color:var(--bad)}
+  .cust{margin-top:10px;display:flex;align-items:center;gap:8px;background:var(--surface-2);
+    border:1px dashed var(--line-strong);border-radius:var(--r-input);padding:8px 10px;width:100%;text-align:left}
+  .cust:hover{border-color:var(--primary)}
+  .cust .av{width:26px;height:26px;border-radius:50%;background:var(--thumb);display:grid;place-items:center;
+    font-size:11px;font-weight:700;color:var(--ink-2);flex:none}
+  .cust .t{font-size:12px;font-weight:600;line-height:1.25}
+  .cust .t span{display:block;font-weight:400;color:var(--ink-2);font-size:11px}
+
+  .lines{overflow:auto;min-height:0;padding:6px 16px 8px;flex:1}
+  .line{display:grid;grid-template-columns:1fr auto;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
+  .line:last-child{border-bottom:0}
+  .line .nm{font-size:13px;font-weight:600;line-height:1.3}
+  .line .note{font-size:11.5px;color:var(--ink-2);margin-top:2px}
+  .line .amt{font-variant-numeric:tabular-nums;font-weight:700;font-size:13px;text-align:right}
+  .qty{display:inline-flex;align-items:center;gap:2px;margin-top:7px;border:1px solid var(--line);border-radius:var(--r-pill);overflow:hidden}
+  .qty button{width:28px;height:28px;display:grid;place-items:center;color:var(--ink);font-weight:700}
+  .qty button:hover{background:var(--surface-2)}
+  .qty span{min-width:24px;text-align:center;font-size:12.5px;font-variant-numeric:tabular-nums;font-weight:700}
+  .lnk{font-size:11.5px;font-weight:600;color:var(--primary);text-decoration:none;margin-left:8px}
+  .lnk:hover{text-decoration:underline}
+
+  .totals{padding:10px 16px 0;border-top:1px solid var(--line);background:var(--surface)}
+  .trow{display:flex;justify-content:space-between;gap:10px;font-size:12.5px;color:var(--ink-2);padding:3px 0}
+  .trow b{color:var(--ink);font-weight:600}
+  .trow .v{font-variant-numeric:tabular-nums;font-weight:600;color:var(--ink)}
+  .trow.disc .v{color:var(--ok)}
+  .grand{display:flex;justify-content:space-between;align-items:baseline;gap:10px;
+    margin-top:8px;padding-top:10px;border-top:1px solid var(--line-strong)}
+  .grand span{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2)}
+  .grand strong{font-size:23px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+
+  .pay{padding:10px 16px 14px;display:grid;gap:8px;background:var(--surface)}
+  .split{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .btn{height:44px;border-radius:var(--r-input);font-weight:700;font-size:13px;display:inline-flex;
+    align-items:center;justify-content:center;gap:8px;border:1px solid transparent}
+  .btn-sec{background:var(--surface);border-color:var(--line-strong);color:var(--ink)}
+  .btn-sec:hover{background:var(--surface-2)}
+  .btn-ghost{background:transparent;border:1px dashed var(--line-strong);color:var(--ink-2)}
+  .btn-ghost:hover{color:var(--ink);border-color:var(--primary)}
+  .btn-primary{background:var(--primary);color:#fff;height:54px;font-size:14.5px;letter-spacing:.01em;
+    box-shadow:var(--shadow-1);justify-content:space-between;padding:0 16px}
+  .btn-primary:hover{background:var(--primary-hover)}
+  .btn-primary:active{background:var(--primary-press)}
+  .btn-primary .kbd{font-size:10.5px;font-weight:600;opacity:.85;border:1px solid rgba(255,255,255,.45);
+    border-radius:4px;padding:1px 5px}
+
+  .foot-hint{display:flex;gap:14px;flex-wrap:wrap;padding:0 18px 10px;font-size:11px;color:var(--ink-2)}
+  .foot-hint b{color:var(--ink);font-weight:600}
+
+  /* Toast */
+  .toast{position:fixed;left:18px;bottom:18px;background:var(--surface);border:1px solid var(--line);
+    border-left:3px solid var(--ok);border-radius:10px;box-shadow:var(--shadow-2);padding:10px 14px;
+    font-size:12.5px;display:flex;gap:10px;align-items:flex-start;max-width:330px;z-index:40}
+  .toast b{display:block;font-size:12.5px}
+  .toast span{color:var(--ink-2);font-size:11.5px}
+
+  @media (max-width:1080px){
+    .main{grid-template-columns:minmax(0,1fr) 340px}
+  }
+  @media (max-width:720px){
+    .app{height:auto}
+    .main{grid-template-columns:1fr}
+    .cart{border-left:0;border-top:1px solid var(--line)}
+    .grid-scroll{overflow:visible;max-height:none}
+    .lines{overflow:visible}
+  }
+  @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- ===== Header ===== -->
+  <header class="top">
+    <div class="brand">
+      <div class="brand-mark">R</div>
+      <div><b>Rajahemat</b><small>Coffee &amp; Eatery</small></div>
+    </div>
+    <div class="ctx">
+      <span class="chip dine">Meja 04 <span style="color:var(--ink-2);font-weight:500">▾</span></span>
+      <span class="chip">Dine-in</span>
+      <span class="chip">Takeaway</span>
+    </div>
+    <div class="top-right">
+      <div class="who"><b>Siti Aminah</b><span>Kasir · Shift #12</span></div>
+      <button class="ghost">Tutup sesi</button>
+    </div>
+  </header>
+
+  <div class="main">
+    <!-- ===== Katalog ===== -->
+    <section class="catalog" aria-label="Katalog menu">
+      <div class="catalog-top">
+        <div class="search">
+          <svg class="lu" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.2-3.2"/></svg>
+          <input type="search" placeholder="Cari menu…" aria-label="Cari menu">
+          <kbd>F2</kbd>
+        </div>
+        <button class="ghost">Kelola menu</button>
+      </div>
+
+      <div class="tabs" role="tablist" aria-label="Kategori menu">
+        <button class="tab" role="tab" aria-selected="true">Semua</button>
+        <button class="tab" role="tab" aria-selected="false">Kopi</button>
+        <button class="tab" role="tab" aria-selected="false">Non-Kopi</button>
+        <button class="tab" role="tab" aria-selected="false">Makanan</button>
+        <button class="tab" role="tab" aria-selected="false">Kue</button>
+      </div>
+
+      <div class="grid-scroll">
+        <div class="grid">
+          <button class="tile"><div class="ph"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 8h13v6a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5z"/><path d="M17 9h1.5a2.5 2.5 0 0 1 0 5H17"/><path d="M7 5c0-1 1-1 1-2M11 5c0-1 1-1 1-2"/></svg></div><b>Kopi Susu Aren</b><div class="meta"><span class="price">Rp20.000</span><span class="add">+ Tambah</span></div></button>
+          <button class="tile"><div class="ph"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 8h13v6a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5z"/><path d="M17 9h1.5a2.5 2.5 0 0 1 0 5H17"/></svg></div><b>Single Origin V60</b><div class="meta"><span class="price">Rp25.000</span><span class="add">+ Tambah</span></div></button>
+          <button class="tile"><div class="ph"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 12c4-4 8 4 12 0s6 0 8 0"/></svg></div><b>Spaghetti Aglio Olio</b><div class="meta"><span class="price">Rp35.000</span><span class="add">+ Tambah</span></div></button>
+          <button class="tile"><div class="ph"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 8h16v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/><path d="M8 8V6a4 4 0 0 1 8 0v2"/></svg></div><b>Matcha Latte</b><div class="meta"><span class="price">Rp22.000</span><span class="add">+ Tambah</span></div></button>
+          <button class="tile" aria-disabled="true"><span class="soldout">Stok habis</span><div class="ph"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 14c2-6 8-8 12-6 3 1.5 4 4 6 6-3 1-5 3-9 3s-6-1-9-3z"/></svg></div><b>Almond Croissant</b><div class="meta"><span class="price">Rp28.000</span></div></button>
+          <button class="tile"><div class="ph"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 8h13v6a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5z"/><path d="M17 9h1.5a2.5 2.5 0 0 1 0 5H17"/></svg></div><b>Americano</b><div class="meta"><span class="price">Rp18.000</span><span class="add">+ Tambah</span></div></button>
+          <button class="tile"><div class="ph"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 8h13v6a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5z"/></svg></div><b>Caramel Macchiato</b><div class="meta"><span class="price">Rp24.000</span><span class="add">+ Tambah</span></div></button>
+          <button class="tile"><div class="ph"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 6h14v13H5z"/><path d="M9 11h6"/></svg></div><b>Nasi Ayam Teriyaki</b><div class="meta"><span class="price">Rp38.000</span><span class="add">+ Tambah</span></div></button>
+        </div>
+      </div>
+      <div class="foot-hint"><span><b>F2</b> cari menu</span><span><b>F4</b> pilih meja</span><span><b>F8</b> bayar</span><span><b>Esc</b> bersihkan</span></div>
+    </section>
+
+    <!-- ===== Tagihan ===== -->
+    <aside class="cart" aria-label="Tagihan pesanan">
+      <div class="cart-head">
+        <div class="row">
+          <h2>Tagihan <span style="color:var(--ink-2);font-weight:500">#ORD-092</span></h2>
+          <span class="badge badge-warn">Belum dibayar</span>
+        </div>
+        <button class="cust">
+          <span class="av">AP</span>
+          <span class="t">Ariel Pratama <span>0812-3456-7890 · Saldo Rp150.000</span></span>
+        </button>
+      </div>
+
+      <div class="lines">
+        <div class="line">
+          <div>
+            <div class="nm">Kopi Susu Aren</div>
+            <div class="note">Less sugar · es sedang</div>
+            <div class="qty"><button aria-label="Kurangi">−</button><span>2</span><button aria-label="Tambah">+</button></div>
+            <a class="lnk" href="#">Ubah</a>
+          </div>
+          <div class="amt">Rp40.000</div>
+        </div>
+        <div class="line">
+          <div>
+            <div class="nm">Spaghetti Aglio Olio</div>
+            <div class="note">Ekstra pedas</div>
+            <div class="qty"><button aria-label="Kurangi">−</button><span>1</span><button aria-label="Tambah">+</button></div>
+            <a class="lnk" href="#">Ubah</a>
+          </div>
+          <div class="amt">Rp35.000</div>
+        </div>
+      </div>
+
+      <div class="totals">
+        <div class="trow"><span>Subtotal</span><span class="v">75.000</span></div>
+        <div class="trow disc"><span>Diskon voucher (HEMATKOPI)</span><span class="v">−6.000</span></div>
+        <div class="trow"><span>PB1 10%</span><span class="v">6.900</span></div>
+        <div class="trow"><span>Service 5%</span><span class="v">3.450</span></div>
+        <div class="grand"><span>Total</span><strong>Rp79.350</strong></div>
+      </div>
+
+      <div class="pay">
+        <div class="split">
+          <button class="btn btn-ghost">Simpan ke meja</button>
+          <button class="btn btn-sec">Cetak bill</button>
+        </div>
+        <button class="btn btn-primary">Bayar sekarang <span class="kbd">F8</span></button>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<div class="toast" role="status">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--ok)" stroke-width="2"><path d="m4 12 5 5L20 6"/></svg>
+  <div><b>Pesanan tersimpan</b><span>2 item masuk ke Meja 04.</span></div>
+</div>
+</body>
+</html>
