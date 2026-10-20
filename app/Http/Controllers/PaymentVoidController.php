@@ -2,10 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
+use App\Enums\WalletTransactionType;
 use App\Models\AuditLog;
 use App\Models\Order;
 use App\Models\Payment;
+use App\Models\WalletTransaction;
+use App\Services\WalletService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -17,7 +21,7 @@ class PaymentVoidController extends Controller
      * Batalkan pembayaran (salah input / refund). Bukti tidak dihapus:
      * baris tetap ada dengan status void dan alasan tercatat.
      */
-    public function store(Request $request, Order $order, Payment $payment): RedirectResponse
+    public function store(Request $request, Order $order, Payment $payment, WalletService $wallet): RedirectResponse
     {
         if ($payment->order_id !== $order->id) {
             abort(404);
@@ -29,7 +33,7 @@ class PaymentVoidController extends Controller
 
         $paymentId = $payment->id;
 
-        DB::transaction(function () use ($order, $paymentId, $validated, $request): void {
+        DB::transaction(function () use ($order, $paymentId, $validated, $request, $wallet): void {
             $order = Order::query()->lockForUpdate()->findOrFail($order->id);
             $payment = Payment::query()->lockForUpdate()->findOrFail($paymentId);
 
@@ -42,6 +46,27 @@ class PaymentVoidController extends Controller
             }
 
             $payment->update(['status' => PaymentStatus::Void]);
+
+            // Saldo yang terlanjur dipotong dikembalikan ke pelanggan (bukan uang tunai).
+            if ($payment->method === PaymentMethod::Wallet) {
+                $debit = WalletTransaction::query()
+                    ->where('payment_id', $payment->id)
+                    ->where('type', WalletTransactionType::Payment->value)
+                    ->where('amount', '<', 0)
+                    ->first();
+
+                if ($debit) {
+                    $wallet->credit(
+                        customer: $debit->customer,
+                        type: WalletTransactionType::Refund,
+                        amount: abs($debit->amount),
+                        session: $payment->cashierSession,
+                        cashier: $request->user(),
+                        note: 'Void pembayaran #'.$payment->id.' ('.$order->number.')',
+                        payment: $payment,
+                    );
+                }
+            }
 
             // Order yang belum/belum lunas kembali terbuka; uang yang sudah dibatalkan tidak dihitung.
             $order->refresh();

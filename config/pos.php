@@ -14,6 +14,13 @@ return [
     // Pendaftaran pelanggan baru ditutup sampai teks legal/privacy disetujui (Gate 0).
     'customer_registration_open' => (bool) env('POS_CUSTOMER_REGISTRATION_OPEN', false),
 
+    /*
+     * Saldo pelanggan (R1.1). Top-up hanya tunai di kasir; saldo tidak dapat ditarik kembali
+     * menjadi uang tunai (kebijakan default, menunggu keputusan owner di Gate 0).
+     */
+    'wallet_daily_topup_limit' => (int) env('POS_WALLET_DAILY_TOPUP_LIMIT', 2000000),
+    'wallet_min_topup' => (int) env('POS_WALLET_MIN_TOPUP', 10000),
+
     'currency' => 'IDR',
     'timezone' => 'Asia/Jakarta',
 ];

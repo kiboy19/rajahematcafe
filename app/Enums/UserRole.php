@@ -35,12 +35,15 @@ enum UserRole: string
             ],
             self::Kasir => [
                 ['label' => 'POS Kasir', 'route' => 'pos.index', 'icon' => 'cart'],
+                ['label' => 'Top-Up Saldo', 'route' => 'wallet.index', 'icon' => 'credit-card'],
                 ['label' => 'Sesi Kasir', 'route' => 'cashier.session', 'icon' => 'lock'],
                 ['label' => 'Pesanan', 'route' => 'orders.index', 'icon' => 'list'],
             ],
             self::Manager, self::Owner => [
                 ['label' => 'Dasbor', 'route' => 'dashboard', 'icon' => 'chart'],
                 ['label' => 'POS Kasir', 'route' => 'pos.index', 'icon' => 'cart'],
+                ['label' => 'Top-Up Saldo', 'route' => 'wallet.index', 'icon' => 'credit-card'],
+                ['label' => 'QR Meja', 'route' => 'tables.qr', 'icon' => 'qr'],
                 ['label' => 'Sesi Kasir', 'route' => 'cashier.session', 'icon' => 'lock'],
                 ['label' => 'Pesanan', 'route' => 'orders.index', 'icon' => 'list'],
                 ['label' => 'Laporan Harian', 'route' => 'reports.daily', 'icon' => 'document'],

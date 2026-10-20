@@ -18,10 +18,11 @@ class StorePaymentRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'method' => ['required', Rule::in(['cash', 'qris', 'edc'])],
+            'method' => ['required', Rule::in(['cash', 'qris', 'edc', 'wallet'])],
             'amount' => ['required', 'integer', 'min:1', 'max:1000000000'],
             'tendered' => ['nullable', 'required_if:method,cash', 'integer', 'min:0', 'max:1000000000'],
-            'reference' => ['nullable', 'string', 'max:100', 'required_unless:method,cash', 'unique:payments,reference'],
+            'reference' => ['nullable', 'string', 'max:100', 'required_if:method,qris,edc', 'unique:payments,reference'],
+            'customer_phone' => ['nullable', 'required_if:method,wallet', 'string', 'max:30'],
         ];
     }
 }

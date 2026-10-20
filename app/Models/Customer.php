@@ -14,7 +14,7 @@ class Customer extends Authenticatable
     use HasFactory, Notifiable;
 
     protected $fillable = [
-        'name', 'email', 'phone', 'password', 'is_active',
+        'name', 'email', 'phone', 'password', 'is_active', 'balance',
     ];
 
     protected $hidden = [
@@ -27,12 +27,18 @@ class Customer extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'is_active' => 'boolean',
+            'balance' => 'integer',
         ];
     }
 
     public function orders(): HasMany
     {
         return $this->hasMany(Order::class, 'customer_id');
+    }
+
+    public function walletTransactions(): HasMany
+    {
+        return $this->hasMany(WalletTransaction::class);
     }
 
     /**

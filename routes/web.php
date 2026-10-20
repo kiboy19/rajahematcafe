@@ -1,17 +1,20 @@
 <?php
 
 use App\Http\Controllers\Auth\StaffLoginController;
+use App\Http\Controllers\CafeTableController;
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\CashierSessionApprovalController;
 use App\Http\Controllers\CashierSessionController;
 use App\Http\Controllers\Customer\CustomerAccountController;
 use App\Http\Controllers\Customer\CustomerAuthController;
+use App\Http\Controllers\Customer\CustomerOrderingController;
 use App\Http\Controllers\KdsController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\PaymentVoidController;
 use App\Http\Controllers\PosController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\WalletController;
 use Illuminate\Support\Facades\Route;
 
 Route::redirect('/', '/dashboard');
@@ -33,6 +36,9 @@ Route::middleware(['auth', 'staff.active'])->group(function () {
         Route::delete('/pos/keranjang', [CartController::class, 'destroy'])->name('pos.cart.destroy');
         Route::post('/pos/checkout', [CartController::class, 'checkout'])->name('pos.checkout');
 
+        Route::get('/saldo', [WalletController::class, 'index'])->name('wallet.index');
+        Route::post('/saldo/topup', [WalletController::class, 'store'])->name('wallet.topup');
+
         Route::get('/sesi-kasir', [CashierSessionController::class, 'show'])->name('cashier.session');
         Route::post('/sesi-kasir/buka', [CashierSessionController::class, 'open'])->name('cashier.session.open');
         Route::post('/sesi-kasir/tutup', [CashierSessionController::class, 'close'])->name('cashier.session.close');
@@ -47,6 +53,7 @@ Route::middleware(['auth', 'staff.active'])->group(function () {
 
     Route::middleware('role:owner,manager')->group(function () {
         Route::get('/laporan/harian', [ReportController::class, 'daily'])->name('reports.daily');
+        Route::get('/meja/qr', [CafeTableController::class, 'qr'])->name('tables.qr');
         Route::post('/sesi-kasir/{session}/verifikasi-selisih', [CashierSessionApprovalController::class, 'update'])
             ->name('cashier.session.verify');
     });
@@ -61,6 +68,9 @@ Route::middleware(['auth', 'staff.active'])->group(function () {
  | Kanal pelanggan — guard `customer`, terpisah dari staf.
  | --------------------------------------------------------------------
  */
+// Scanning the table QR lands here; guests are sent to /masuk and returned after login.
+Route::get('/m/{token}', [CustomerOrderingController::class, 'scan'])->name('customer.table.scan');
+
 Route::name('customer.')->group(function () {
     Route::middleware('guest:customer')->group(function () {
         Route::get('/masuk', [CustomerAuthController::class, 'showLogin'])->name('login');
@@ -73,5 +83,11 @@ Route::name('customer.')->group(function () {
     Route::middleware('auth:customer')->group(function () {
         Route::post('/keluar', [CustomerAuthController::class, 'logout'])->name('logout');
         Route::get('/akun', [CustomerAccountController::class, 'show'])->name('home');
+
+        Route::get('/meja', [CustomerOrderingController::class, 'menu'])->name('order.menu');
+        Route::post('/meja/keranjang', [CustomerOrderingController::class, 'addToCart'])->name('order.cart.add');
+        Route::patch('/meja/keranjang', [CustomerOrderingController::class, 'updateCart'])->name('order.cart.update');
+        Route::delete('/meja/keranjang', [CustomerOrderingController::class, 'clearCart'])->name('order.cart.clear');
+        Route::post('/meja/pesan', [CustomerOrderingController::class, 'checkout'])->name('order.checkout');
     });
 });

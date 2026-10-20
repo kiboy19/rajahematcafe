@@ -55,7 +55,7 @@
                         </tbody>
                     </table>
                     <p class="px-4 py-3 border-t border-line text-[11px] text-ink-2">
-                        Hanya tunai yang menambah uang fisik laci ({{ \Illuminate\Support\Number::currency($cashPaid, 'IDR', 'id', precision: 0) }} pada tanggal ini).
+                        Hanya tunai yang menambah uang fisik laci ({{ \Illuminate\Support\Number::currency($cashPaid, 'IDR', 'id', precision: 0) }} pada tanggal ini; ditambah top-up tunai {{ \Illuminate\Support\Number::currency($cashTopups, 'IDR', 'id', precision: 0) }}).
                     </p>
                 @endif
             </div>

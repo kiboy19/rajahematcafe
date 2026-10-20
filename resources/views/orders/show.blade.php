@@ -101,6 +101,7 @@
                                             <option value="cash">Tunai</option>
                                             <option value="qris">QRIS (manual)</option>
                                             <option value="edc">Kartu / EDC (manual)</option>
+                                            <option value="wallet">Saldo Pelanggan</option>
                                         </select>
                                     </label>
 
@@ -128,6 +129,15 @@
                                                class="h-11 px-3 rounded-input border border-line-strong bg-surface text-sm"
                                                placeholder="Nomor referensi dari mesin/merchant">
                                         @error('reference') <span class="text-bad">{{ $message }}</span> @enderror
+                                    </label>
+
+                                    <label class="flex flex-col gap-1 text-xs font-semibold sm:col-span-2">
+                                        <span>Nomor HP Pelanggan (khusus Saldo)</span>
+                                        <input type="tel" name="customer_phone" maxlength="30"
+                                               value="{{ old('customer_phone', $order->customer?->phone) }}"
+                                               class="h-11 px-3 rounded-input border border-line-strong bg-surface text-sm"
+                                               placeholder="081234567890 (diperlukan jika bayar pakai saldo)">
+                                        @error('customer_phone') <span class="text-bad">{{ $message }}</span> @enderror
                                     </label>
                                 </div>
 

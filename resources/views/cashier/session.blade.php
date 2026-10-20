@@ -14,9 +14,15 @@
                     <p class="mt-1 text-xl font-bold tabular">{{ \Illuminate\Support\Number::currency($cashSales, 'IDR', 'id', precision: 0) }}</p>
                     <p class="text-[11px] text-ink-2">{{ $paymentCount }} pembayaran lunas · non-tunai tidak dihitung</p>
                 </div>
-                <div class="bg-accent text-ink-on-dark rounded-card shadow-1 p-4">
-                    <p class="text-[10px] uppercase tracking-wider opacity-75 font-bold">Estimasi uang laci</p>
-                    <p class="mt-1 text-xl font-bold tabular">{{ \Illuminate\Support\Number::currency($session->expectedCashTotal(), 'IDR', 'id', precision: 0) }}</p>
+                <div class="bg-surface border border-line rounded-card shadow-1 p-4">
+                    <p class="text-[10px] uppercase tracking-wider text-ink-2 font-bold">Top-up tunai masuk</p>
+                    <p class="mt-1 text-xl font-bold tabular">{{ \Illuminate\Support\Number::currency($cashTopups, 'IDR', 'id', precision: 0) }}</p>
+                    <p class="text-[11px] text-ink-2">Uang tunai pelanggan masuk laci</p>
+                </div>
+                <div class="bg-accent text-ink-on-dark rounded-card shadow-1 p-4 md:col-span-3">
+                    <p class="text-[10px] uppercase tracking-wider opacity-75 font-bold">Estimasi total uang laci</p>
+                    <p class="mt-1 text-2xl font-bold tabular">{{ \Illuminate\Support\Number::currency($session->expectedCashTotal(), 'IDR', 'id', precision: 0) }}</p>
+                    <p class="text-[11px] opacity-80 mt-1">Modal awal ({{ \Illuminate\Support\Number::currency($session->opening_float, 'IDR', 'id', precision: 0) }}) + Penjualan tunai ({{ \Illuminate\Support\Number::currency($cashSales, 'IDR', 'id', precision: 0) }}) + Top-up tunai ({{ \Illuminate\Support\Number::currency($cashTopups, 'IDR', 'id', precision: 0) }})</p>
                 </div>
             </div>
 

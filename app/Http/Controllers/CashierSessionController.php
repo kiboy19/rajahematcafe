@@ -21,6 +21,7 @@ class CashierSessionController extends Controller
         return view('cashier.session', [
             'session' => $session,
             'cashSales' => $session?->cashSalesTotal() ?? 0,
+            'cashTopups' => $session?->cashTopupsTotal() ?? 0,
             'paymentCount' => $session?->payments()->where('status', 'paid')->count() ?? 0,
         ]);
     }
@@ -70,7 +71,11 @@ class CashierSessionController extends Controller
         ]);
 
         self::guardNoPendingPayments($session);
-        $expectedCash = $service->calculateExpectedCash($session->opening_float, $session->cashSalesTotal());
+        $expectedCash = $service->calculateExpectedCash(
+            openingFloat: $session->opening_float,
+            cashSales: $session->cashSalesTotal(),
+            cashTopups: $session->cashTopupsTotal(),
+        );
 
         if ((int) $validated['counted_cash'] !== $expectedCash && blank($validated['closing_note'] ?? null)) {
             return back()->withErrors(['closing_note' => 'Catatan wajib diisi jika terdapat selisih kas.'])->withInput();

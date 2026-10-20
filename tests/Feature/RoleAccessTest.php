@@ -51,12 +51,12 @@ class RoleAccessTest extends TestCase
         $kasirNav = UserRole::Kasir->navigation();
         $ownerNav = UserRole::Owner->navigation();
 
-        // Semua route POS, sesi kasir, pesanan, laporan, dan KDS sudah terdaftar.
+        // Semua route POS, saldo, sesi kasir, pesanan, laporan, dan KDS sudah terdaftar.
         $this->assertSame(
-            ['dashboard', 'pos.index', 'cashier.session', 'orders.index', 'reports.daily', 'kds.index'],
+            ['dashboard', 'pos.index', 'wallet.index', 'tables.qr', 'cashier.session', 'orders.index', 'reports.daily', 'kds.index'],
             array_column($ownerNav, 'route'),
         );
-        $this->assertSame(['pos.index', 'cashier.session', 'orders.index'], array_column($kasirNav, 'route'));
+        $this->assertSame(['pos.index', 'wallet.index', 'cashier.session', 'orders.index'], array_column($kasirNav, 'route'));
         $this->assertSame(['kds.index'], array_column(UserRole::Dapur->navigation(), 'route'));
     }
 

@@ -16,6 +16,7 @@ class CustomerAccountController extends Controller
         return view('customer.account', [
             'customer' => $customer,
             'orders' => $customer->orders()->withCount('items')->latest('id')->paginate(10),
+            'transactions' => $customer->walletTransactions()->latest('id')->limit(10)->get(),
             'stats' => $customer->orders()
                 ->where('status', '!=', OrderStatus::Dibatalkan->value)
                 ->selectRaw('COUNT(*) as orders_count, COALESCE(SUM(total), 0) as total_spent')

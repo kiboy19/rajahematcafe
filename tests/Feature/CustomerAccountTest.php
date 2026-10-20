@@ -2,9 +2,13 @@
 
 namespace Tests\Feature;
 
+use App\Enums\UserRole;
+use App\Enums\WalletTransactionType;
+use App\Models\CashierSession;
 use App\Models\Customer;
 use App\Models\Order;
 use App\Models\User;
+use App\Services\WalletService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\RateLimiter;
 use Tests\TestCase;
@@ -176,6 +180,24 @@ class CustomerAccountTest extends TestCase
             ->assertSee('Dewi Lestari')
             ->assertSee($own->number)
             ->assertDontSee($foreign->number);
+    }
+
+    public function test_akun_menampilkan_saldo_dan_mutasi_milik_sendiri(): void
+    {
+        $cashier = User::factory()->role(UserRole::Kasir)->create();
+        $session = CashierSession::factory()->create(['cashier_id' => $cashier->id]);
+        $customer = Customer::factory()->create(['phone' => '081234567890']);
+        $other = Customer::factory()->create(['phone' => '081200009999']);
+
+        $wallet = app(WalletService::class);
+        $wallet->credit($customer, WalletTransactionType::TopUp, 25000, $session, $cashier);
+        $wallet->credit($other, WalletTransactionType::TopUp, 99000, $session, $cashier);
+
+        $this->actingAs($customer, 'customer')
+            ->get('/akun')
+            ->assertOk()
+            ->assertSee('25.000')
+            ->assertDontSee('99.000');
     }
 
     public function test_sesi_pelanggan_tidak_memberi_akses_route_staf(): void

@@ -4,21 +4,24 @@ namespace App\Support;
 
 use App\Models\MenuItem;
 use App\Services\MoneyCalculator;
-use Illuminate\Session\Store;
+use Illuminate\Contracts\Session\Session;
 
 /**
- * Keranjang POS berbasis session.
+ * Keranjang berbasis session (POS kasir dan pesanan QR pelanggan memakai instance berbeda).
  *
  * Session hanya menyimpan menu_item_id + kuantitas + catatan; harga selalu dibaca ulang
  * dari master saat render dan checkout sehingga harga dari klien tidak pernah dipercaya.
  */
 class Cart
 {
-    private const SESSION_KEY = 'pos.cart';
+    public const SESSION_KEY = 'pos.cart';
+
+    public const CUSTOMER_SESSION_KEY = 'customer.cart';
 
     public function __construct(
-        private readonly Store $session,
+        private readonly Session $session,
         private readonly MoneyCalculator $calculator,
+        private readonly string $key = self::SESSION_KEY,
     ) {}
 
     /**
@@ -27,7 +30,7 @@ class Cart
     public function raw(): array
     {
         /** @var array<int, array{quantity: int, note: string|null}> $raw */
-        $raw = $this->session->get(self::SESSION_KEY, []);
+        $raw = $this->session->get($this->key, []);
 
         return $raw;
     }
@@ -67,7 +70,7 @@ class Cart
 
     public function clear(): void
     {
-        $this->session->forget(self::SESSION_KEY);
+        $this->session->forget($this->key);
     }
 
     public function isEmpty(): bool
@@ -138,6 +141,6 @@ class Cart
 
     private function put(array $raw): void
     {
-        $this->session->put(self::SESSION_KEY, $raw);
+        $this->session->put($this->key, $raw);
     }
 }

@@ -25,6 +25,38 @@
             </div>
         </section>
 
+        <section class="bg-accent text-ink-on-dark rounded-card shadow-1 p-5">
+            <p class="text-[11px] uppercase tracking-wider opacity-75 font-bold">Saldo Rajahemat</p>
+            <p class="mt-1 text-3xl font-bold tabular">{{ Number::currency($customer->balance, 'IDR', 'id', precision: 0) }}</p>
+            <p class="mt-2 text-xs opacity-80">Isi saldo tunai di kasir. Saldo dipakai untuk membayar pesanan di kasir.</p>
+        </section>
+
+        <section class="bg-surface border border-line rounded-card shadow-1 p-5">
+            <div class="flex items-center justify-between mb-3">
+                <h2 class="font-display font-bold text-base">Mutasi Saldo</h2>
+                <span class="text-xs text-ink-2 tabular">{{ $transactions->count() }} terbaru</span>
+            </div>
+
+            @if ($transactions->isEmpty())
+                <p class="text-sm text-ink-2 py-4 text-center">Belum ada mutasi saldo.</p>
+            @else
+                <ul class="flex flex-col divide-y divide-line">
+                    @foreach ($transactions as $trx)
+                        <li class="py-3 flex items-center justify-between gap-3 text-sm">
+                            <div class="min-w-0">
+                                <span class="font-semibold block">{{ $trx->type->label() }}</span>
+                                <span class="text-[11px] text-ink-2 tabular">{{ $trx->created_at->translatedFormat('d M Y, H:i') }}</span>
+                            </div>
+                            <div class="text-right whitespace-nowrap">
+                                <span class="tabular font-bold block {{ $trx->amount > 0 ? 'text-ok' : 'text-ink' }}">@if ($trx->amount > 0)+@else−@endif {{ Number::currency(abs($trx->amount), 'IDR', 'id', precision: 0) }}</span>
+                                <span class="text-[11px] text-ink-2 tabular">Saldo {{ Number::currency($trx->balance_after, 'IDR', 'id', precision: 0) }}</span>
+                            </div>
+                        </li>
+                    @endforeach
+                </ul>
+            @endif
+        </section>
+
         <section class="bg-surface border border-line rounded-card shadow-1 p-5">
             <div class="flex items-center justify-between mb-3">
                 <h2 class="font-display font-bold text-base">Riwayat Pesanan</h2>
@@ -70,8 +102,8 @@
 
         {{-- Ponytail: Dompet saldo dan order QR meja aktif pada fase ekosistem (R1.1). --}}
         <section class="rounded-card border border-primary/20 bg-surface-2 p-4 text-xs text-ink-2">
-            <strong class="font-semibold text-ink block mb-1">Fitur Berikutnya (R1.1)</strong>
-            Saldo dompet cafe, pengisian tunai di kasir, dan pemesanan langsung dari meja via QR akan aktif pada rilis berikutnya.
+            <strong class="font-semibold text-ink block mb-1">Menu via QR di Meja</strong>
+            Pindai QR yang ditempel di meja Anda untuk memesan langsung dari HP — pesanan otomatis dikirim ke dapur.
         </section>
     </div>
 </x-layouts.customer>

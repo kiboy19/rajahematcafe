@@ -55,6 +55,7 @@ class CashierSessionService
             $expected = $this->calculateExpectedCash(
                 openingFloat: $session->opening_float,
                 cashSales: $session->cashSalesTotal(),
+                cashTopups: $session->cashTopupsTotal(),
             );
 
             $variance = $this->calculateVariance($expected, $countedCash);

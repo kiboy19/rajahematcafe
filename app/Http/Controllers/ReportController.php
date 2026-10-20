@@ -5,9 +5,11 @@ namespace App\Http\Controllers;
 use App\Enums\OrderStatus;
 use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
+use App\Enums\WalletTransactionType;
 use App\Models\CashierSession;
 use App\Models\Order;
 use App\Models\Payment;
+use App\Models\WalletTransaction;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\View\View;
@@ -34,6 +36,11 @@ class ReportController extends Controller
             ->firstWhere('method', PaymentMethod::Cash->value)
             ?->total;
 
+        $cashTopups = (int) WalletTransaction::query()
+            ->where('type', WalletTransactionType::TopUp->value)
+            ->whereBetween('created_at', [$date->copy()->startOfDay(), $date->copy()->endOfDay()])
+            ->sum('amount');
+
         $sessions = CashierSession::query()
             ->with(['cashier', 'varianceVerifier'])
             ->whereDate('opened_at', $date)
@@ -50,6 +57,7 @@ class ReportController extends Controller
             'serviceTotal' => (int) $orders->sum('service'),
             'paymentsByMethod' => $paymentsByMethod,
             'cashPaid' => $cashPaid,
+            'cashTopups' => $cashTopups,
             'sessions' => $sessions,
         ]);
     }

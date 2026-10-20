@@ -16,7 +16,7 @@
                     <header class="p-4 border-b border-kds-line flex items-start justify-between gap-3">
                         <div>
                             <p class="text-2xl font-bold leading-none">
-                                {{ $order->channel === \App\Enums\OrderChannel::DineIn ? 'Meja '.$order->table_label : 'Bungkus' }}
+                                {{ $order->table_label ? 'Meja '.$order->table_label : 'Bungkus' }}
                             </p>
                             <p class="text-xs text-kds-muted mt-1 font-mono">{{ $order->number }}</p>
                         </div>

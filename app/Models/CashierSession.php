@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
+use App\Enums\WalletTransactionType;
 use App\Services\CashierSessionService;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -81,11 +82,23 @@ class CashierSession extends Model
             ->sum('amount');
     }
 
+    /**
+     * Top-up tunai yang diterima di sesi ini. Uang fisik masuk laci, jadi ikut dihitung saat tutup kas.
+     */
+    public function cashTopupsTotal(): int
+    {
+        return (int) WalletTransaction::query()
+            ->where('cashier_session_id', $this->id)
+            ->where('type', WalletTransactionType::TopUp->value)
+            ->sum('amount');
+    }
+
     public function expectedCashTotal(): int
     {
         return app(CashierSessionService::class)->calculateExpectedCash(
             openingFloat: $this->opening_float,
             cashSales: $this->cashSalesTotal(),
+            cashTopups: $this->cashTopupsTotal(),
         );
     }
 }
