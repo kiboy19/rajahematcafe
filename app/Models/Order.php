@@ -17,7 +17,7 @@ class Order extends Model
     use HasFactory;
 
     protected $fillable = [
-        'number', 'channel', 'status', 'cashier_id', 'customer_id', 'table_label',
+        'number', 'channel', 'status', 'cashier_id', 'customer_id', 'voucher_id', 'table_label',
         'subtotal', 'discount', 'tax', 'service', 'total',
         'tax_percent', 'service_percent', 'note', 'placed_at', 'paid_at', 'closed_at',
     ];
@@ -51,6 +51,11 @@ class Order extends Model
     public function customer(): BelongsTo
     {
         return $this->belongsTo(Customer::class, 'customer_id');
+    }
+
+    public function voucher(): BelongsTo
+    {
+        return $this->belongsTo(Voucher::class);
     }
 
     public function scopeWhereNumberPrefix(Builder $query, string $prefix): Builder

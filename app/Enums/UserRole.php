@@ -44,6 +44,7 @@ enum UserRole: string
                 ['label' => 'POS Kasir', 'route' => 'pos.index', 'icon' => 'cart'],
                 ['label' => 'Top-Up Saldo', 'route' => 'wallet.index', 'icon' => 'credit-card'],
                 ['label' => 'QR Meja', 'route' => 'tables.qr', 'icon' => 'qr'],
+                ['label' => 'Voucher', 'route' => 'vouchers.index', 'icon' => 'tag'],
                 ['label' => 'Sesi Kasir', 'route' => 'cashier.session', 'icon' => 'lock'],
                 ['label' => 'Pesanan', 'route' => 'orders.index', 'icon' => 'list'],
                 ['label' => 'Laporan Harian', 'route' => 'reports.daily', 'icon' => 'document'],

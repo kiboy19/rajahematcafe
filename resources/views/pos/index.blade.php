@@ -121,13 +121,24 @@
                         </label>
                     </div>
 
+                    <div class="grid grid-cols-2 gap-2">
+                        <label class="flex flex-col gap-1 text-xs font-semibold">
+                            <span>Voucher (opsional)</span>
+                            <input type="text" name="voucher_code" placeholder="KODE" maxlength="30"
+                                   class="h-8 px-2 rounded-input border border-line-strong bg-surface text-xs font-normal uppercase">
+                        </label>
+                        <label class="flex flex-col gap-1 text-xs font-semibold">
+                            <span>Diskon Manual (Rp)</span>
+                            <input type="number" name="discount" min="0" placeholder="0"
+                                   class="h-8 px-2 rounded-input border border-line-strong bg-surface text-xs font-normal">
+                        </label>
+                    </div>
+
                     <label class="flex flex-col gap-1 text-xs font-semibold">
                         <span>Catatan Pesanan (opsional)</span>
                         <input type="text" name="note" placeholder="Misal: jangan pakai sedotan" maxlength="255"
                                class="h-8 px-2 rounded-input border border-line-strong bg-surface text-xs font-normal">
                     </label>
-
-                    <input type="hidden" name="discount" value="0">
                 </form>
 
                 <!-- Daftar Item Keranjang -->
@@ -182,12 +193,7 @@
                         <span>Subtotal</span>
                         <span class="tabular font-semibold text-ink">{{ \Illuminate\Support\Number::currency($bill['subtotal'], 'IDR', 'id', precision: 0) }}</span>
                     </div>
-                    @if ($bill['discount'] > 0)
-                        <div class="flex justify-between text-ok">
-                            <span>Diskon</span>
-                            <span class="tabular font-semibold">−{{ \Illuminate\Support\Number::currency($bill['discount'], 'IDR', 'id', precision: 0) }}</span>
-                        </div>
-                    @endif
+                    <p class="text-[11px] text-ink-2">Belum termasuk diskon manual / voucher (dihitung saat pesanan dikirim).</p>
                     <div class="flex justify-between">
                         <span>PB1 ({{ config('pos.tax_percent') }}%)</span>
                         <span class="tabular font-semibold text-ink">{{ \Illuminate\Support\Number::currency($bill['tax'], 'IDR', 'id', precision: 0) }}</span>

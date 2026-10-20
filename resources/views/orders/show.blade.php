@@ -41,7 +41,7 @@
             <div class="border-t border-line pt-3 flex flex-col gap-1 text-xs text-ink-2">
                 <div class="flex justify-between"><span>Subtotal</span><span class="tabular">{{ \Illuminate\Support\Number::currency($order->subtotal, 'IDR', 'id', precision: 0) }}</span></div>
                 @if ($order->discount > 0)
-                    <div class="flex justify-between text-ok"><span>Diskon</span><span class="tabular">−{{ \Illuminate\Support\Number::currency($order->discount, 'IDR', 'id', precision: 0) }}</span></div>
+                    <div class="flex justify-between text-ok"><span>Diskon{{ $order->voucher ? ' · '.$order->voucher->code : '' }}</span><span class="tabular">−{{ \Illuminate\Support\Number::currency($order->discount, 'IDR', 'id', precision: 0) }}</span></div>
                 @endif
                 <div class="flex justify-between"><span>PB1 ({{ $order->tax_percent }}%)</span><span class="tabular">{{ \Illuminate\Support\Number::currency($order->tax, 'IDR', 'id', precision: 0) }}</span></div>
                 <div class="flex justify-between"><span>Layanan ({{ $order->service_percent }}%)</span><span class="tabular">{{ \Illuminate\Support\Number::currency($order->service, 'IDR', 'id', precision: 0) }}</span></div>

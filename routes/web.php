@@ -14,6 +14,7 @@ use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\PaymentVoidController;
 use App\Http\Controllers\PosController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\VoucherController;
 use App\Http\Controllers\WalletController;
 use Illuminate\Support\Facades\Route;
 
@@ -54,6 +55,9 @@ Route::middleware(['auth', 'staff.active'])->group(function () {
     Route::middleware('role:owner,manager')->group(function () {
         Route::get('/laporan/harian', [ReportController::class, 'daily'])->name('reports.daily');
         Route::get('/meja/qr', [CafeTableController::class, 'qr'])->name('tables.qr');
+        Route::get('/voucher', [VoucherController::class, 'index'])->name('vouchers.index');
+        Route::post('/voucher', [VoucherController::class, 'store'])->name('vouchers.store');
+        Route::patch('/voucher/{voucher}/status', [VoucherController::class, 'toggle'])->name('vouchers.toggle');
         Route::post('/sesi-kasir/{session}/verifikasi-selisih', [CashierSessionApprovalController::class, 'update'])
             ->name('cashier.session.verify');
     });

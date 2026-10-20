@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Enums\OrderStatus;
 use App\Models\Order;
+use App\Services\VoucherService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -28,7 +29,7 @@ class KdsController extends Controller
         ]);
     }
 
-    public function updateStatus(Request $request, Order $order): RedirectResponse
+    public function updateStatus(Request $request, Order $order, VoucherService $vouchers): RedirectResponse
     {
         $validated = $request->validate([
             'status' => ['required', Rule::enum(OrderStatus::class)],
@@ -62,6 +63,10 @@ class KdsController extends Controller
         }
 
         $order->save();
+
+        if ($newStatus === OrderStatus::Dibatalkan) {
+            $vouchers->release($order->id);
+        }
 
         return back()->with('success', "Pesanan #{$order->number} diperbarui ke {$newStatus->label()}.");
     }

@@ -15,6 +15,7 @@ use App\Models\Order;
 use App\Models\Payment;
 use App\Services\MoneyCalculator;
 use App\Services\TransactionNumberGenerator;
+use App\Services\VoucherService;
 use App\Services\WalletService;
 use App\Support\Cart;
 use Illuminate\Http\RedirectResponse;
@@ -138,6 +139,7 @@ class CustomerOrderingController extends Controller
         MoneyCalculator $calculator,
         TransactionNumberGenerator $numbers,
         WalletService $wallet,
+        VoucherService $vouchers,
     ): RedirectResponse {
         $cart = $this->cart();
 
@@ -155,6 +157,7 @@ class CustomerOrderingController extends Controller
         $customer = $request->user('customer');
         $validated = $request->validate([
             'pay_with_wallet' => ['nullable', 'boolean'],
+            'voucher_code' => ['nullable', 'string', 'max:30'],
             'note' => ['nullable', 'string', 'max:255'],
         ]);
 
@@ -166,12 +169,18 @@ class CustomerOrderingController extends Controller
             }
         }
 
+        $subtotal = array_sum(array_map(fn (array $line): int => $line['line_total'], $lines));
+        $voucherCode = trim((string) ($validated['voucher_code'] ?? ''));
+
+        // Diskon voucher dihitung dari master voucher, bukan dari input pelanggan.
+        $voucher = $voucherCode === '' ? null : $vouchers->resolve($voucherCode, $subtotal, $customer);
+
         $bill = $calculator->calculateBill(
             array_map(fn (array $line): array => [
                 'price' => $line['menu_item']->price,
                 'quantity' => $line['quantity'],
             ], $lines),
-            discount: 0,
+            discount: $voucher?->discountFor($subtotal) ?? 0,
             taxPercent: (int) config('pos.tax_percent'),
             servicePercent: (int) config('pos.service_percent'),
         );
@@ -184,15 +193,16 @@ class CustomerOrderingController extends Controller
             ]);
         }
 
-        $order = DB::transaction(function () use ($customer, $table, $bill, $lines, $validated, $numbers, $payWithWallet, $wallet): Order {
+        $order = DB::transaction(function () use ($customer, $table, $bill, $lines, $validated, $numbers, $payWithWallet, $wallet, $voucher, $vouchers): Order {
             $order = Order::query()->create([
                 'number' => $numbers->nextOrderNumber(),
                 'channel' => OrderChannel::QrTable,
                 'status' => OrderStatus::Baru,
                 'customer_id' => $customer->id,
+                'voucher_id' => $voucher?->id,
                 'table_label' => $table->label,
                 'subtotal' => $bill['subtotal'],
-                'discount' => 0,
+                'discount' => $bill['discount'],
                 'tax' => $bill['tax'],
                 'service' => $bill['service'],
                 'total' => $bill['grand_total'],
@@ -227,6 +237,10 @@ class CustomerOrderingController extends Controller
 
                 $wallet->debit($customer, $bill['grand_total'], $payment);
                 $order->update(['paid_at' => now()]);
+            }
+
+            if ($voucher) {
+                $vouchers->redeem($voucher, $order->id, $bill['subtotal'], $customer, $bill['discount']);
             }
 
             return $order;

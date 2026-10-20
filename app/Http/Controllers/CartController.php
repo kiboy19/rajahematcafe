@@ -9,6 +9,7 @@ use App\Http\Requests\StoreCartItemRequest;
 use App\Models\Order;
 use App\Services\MoneyCalculator;
 use App\Services\TransactionNumberGenerator;
+use App\Services\VoucherService;
 use App\Support\Cart;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -60,6 +61,7 @@ class CartController extends Controller
         Cart $cart,
         MoneyCalculator $calculator,
         TransactionNumberGenerator $numbers,
+        VoucherService $vouchers,
     ): RedirectResponse {
         if ($cart->isEmpty()) {
             throw ValidationException::withMessages(['cart' => 'Keranjang masih kosong.']);
@@ -78,28 +80,40 @@ class CartController extends Controller
             }
         }
 
+        $subtotal = array_sum(array_map(fn (array $line): int => $line['line_total'], $lines));
+        $manualDiscount = (int) ($validated['discount'] ?? 0);
+        $voucherCode = trim((string) ($validated['voucher_code'] ?? ''));
+
+        if ($voucherCode !== '' && $manualDiscount > 0) {
+            throw ValidationException::withMessages(['voucher_code' => 'Gunakan salah satu: diskon manual atau kode voucher.']);
+        }
+
+        // Diskon voucher diambil dari master voucher, bukan dari input kasir.
+        $voucher = $voucherCode === '' ? null : $vouchers->resolve($voucherCode, $subtotal);
+
         $bill = $calculator->calculateBill(
             array_map(fn (array $line): array => [
                 'price' => $line['menu_item']->price,
                 'quantity' => $line['quantity'],
             ], $lines),
-            discount: (int) ($validated['discount'] ?? 0),
+            discount: $voucher?->discountFor($subtotal) ?? $manualDiscount,
             taxPercent: (int) config('pos.tax_percent'),
             servicePercent: (int) config('pos.service_percent'),
         );
 
         $role = $request->user()->role;
         $maxDiscount = (int) floor($bill['subtotal'] * config('pos.max_cashier_discount_percent') / 100);
-        if ($bill['discount'] > $maxDiscount && ! in_array($role->value, ['owner', 'manager'], true)) {
+        if ($voucher === null && $bill['discount'] > $maxDiscount && ! in_array($role->value, ['owner', 'manager'], true)) {
             throw ValidationException::withMessages(['discount' => 'Diskon di atas batas kasir memerlukan persetujuan manager.']);
         }
 
-        $order = DB::transaction(function () use ($request, $validated, $lines, $bill, $numbers): Order {
+        $order = DB::transaction(function () use ($request, $validated, $lines, $bill, $numbers, $voucher, $vouchers): Order {
             $order = Order::query()->create([
                 'number' => $numbers->nextOrderNumber(),
                 'channel' => OrderChannel::from($validated['channel']),
                 'status' => OrderStatus::Baru,
                 'cashier_id' => $request->user()->id,
+                'voucher_id' => $voucher?->id,
                 'table_label' => $validated['channel'] === 'dine_in' ? $validated['table_label'] : null,
                 'subtotal' => $bill['subtotal'],
                 'discount' => $bill['discount'],
@@ -121,6 +135,10 @@ class CartController extends Controller
                     'line_total' => $line['line_total'],
                     'note' => $line['note'],
                 ]);
+            }
+
+            if ($voucher) {
+                $vouchers->redeem($voucher, $order->id, $bill['subtotal'], null, $bill['discount']);
             }
 
             return $order;

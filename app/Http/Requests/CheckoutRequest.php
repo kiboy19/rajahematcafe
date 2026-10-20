@@ -21,6 +21,7 @@ class CheckoutRequest extends FormRequest
             'channel' => ['required', Rule::in(['dine_in', 'takeaway'])],
             'table_label' => ['nullable', 'required_if:channel,dine_in', 'string', 'max:20', Rule::exists('cafe_tables', 'label')->where('is_active', true)],
             'discount' => ['nullable', 'integer', 'min:0'],
+            'voucher_code' => ['nullable', 'string', 'max:30'],
             'note' => ['nullable', 'string', 'max:255'],
         ];
     }

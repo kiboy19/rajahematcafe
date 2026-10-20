@@ -3,11 +3,13 @@
 namespace Database\Seeders;
 
 use App\Enums\UserRole;
+use App\Enums\VoucherType;
 use App\Models\CafeTable;
 use App\Models\Category;
 use App\Models\Customer;
 use App\Models\MenuItem;
 use App\Models\User;
+use App\Models\Voucher;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
@@ -94,5 +96,19 @@ class DatabaseSeeder extends Seeder
             $label = str_pad((string) $n, 2, '0', STR_PAD_LEFT);
             CafeTable::firstOrCreate(['label' => $label], ['seats' => 4, 'is_active' => true]);
         }
+
+        // Voucher demo (uji lokal) — kuota 100, minimal belanja Rp 25.000.
+        Voucher::firstOrCreate(
+            ['code' => 'HEMAT10K'],
+            [
+                'name' => 'Potongan Rp 10.000',
+                'type' => VoucherType::Fixed,
+                'value' => 10000,
+                'min_subtotal' => 25000,
+                'quota' => 100,
+                'quota_per_customer' => 1,
+                'is_active' => true,
+            ],
+        );
     }
 }

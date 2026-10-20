@@ -117,6 +117,7 @@
                         <span>Subtotal</span>
                         <span class="tabular font-semibold text-ink">{{ \Illuminate\Support\Number::currency($bill['subtotal'], 'IDR', 'id', precision: 0) }}</span>
                     </div>
+                    <p class="text-[11px] text-ink-2">Voucher dipotong saat pesanan dikirim; gunakan satu voucher saja.</p>
                     @if ($bill['tax'] > 0)
                         <div class="flex justify-between">
                             <span>PB1 ({{ config('pos.tax_percent') }}%)</span>
@@ -133,11 +134,21 @@
                         <span>TOTAL</span>
                         <span class="tabular">{{ \Illuminate\Support\Number::currency($bill['grand_total'], 'IDR', 'id', precision: 0) }}</span>
                     </div>
+                    @error('voucher_code')
+                        <p class="text-[11px] text-bad">{{ $message }}</p>
+                    @enderror
                 </div>
 
                 {{-- Form Checkout --}}
                 <form method="POST" action="{{ route('customer.order.checkout') }}" class="flex flex-col gap-3">
                     @csrf
+
+                    <label class="flex flex-col gap-1 text-xs font-semibold">
+                        <span>Kode Voucher (opsional)</span>
+                        <input type="text" name="voucher_code" maxlength="30" value="{{ old('voucher_code') }}"
+                               class="h-10 px-3 rounded-input border border-line bg-surface text-xs uppercase"
+                               placeholder="Contoh: HEMAT10K">
+                    </label>
 
                     <label class="flex flex-col gap-1 text-xs font-semibold">
                         <span>Catatan Pesanan (opsional)</span>
