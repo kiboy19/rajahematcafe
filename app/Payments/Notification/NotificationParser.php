@@ -32,7 +32,7 @@ final class NotificationParser
             throw new NotificationValidationException(400, 'malformed_payload', previous: $exception);
         }
 
-        $fields = array_map(static fn ($value): string => is_scalar($value) ? (string) $value : '', $fields);
+        $fields = array_map(static fn ($value): mixed => is_scalar($value) ? (string) $value : $value, $fields);
         $orderId = $fields['order_id'] ?? '';
         $statusCode = $fields['status_code'] ?? '';
         $grossAmount = $fields['gross_amount'] ?? '';

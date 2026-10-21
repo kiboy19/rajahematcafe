@@ -5,7 +5,7 @@ namespace App\Payments\Notification;
 final readonly class NormalizedObservation
 {
     /**
-     * @param array<string, string> $fields  verbatim case-sensitive fields extracted from order_id, status_code, gross_amount, signature_key
+     * @param array<string, mixed> $fields  verbatim case-sensitive payload fields; scalars kept as strings, nested structures (mis. `refunds`) dipertahankan apa adanya
      */
     public function __construct(
         public string $orderId,
