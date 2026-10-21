@@ -10,7 +10,7 @@ class WalletTopUp extends Model
     protected $table = 'wallet_top_ups';
 
     protected $fillable = [
-        'customer_id', 'gateway_transaction_id', 'midtrans_order_id',
+        'customer_id', 'gateway_transaction_id', 'midtrans_order_id', 'snap_token',
         'gross_amount', 'settled_amount', 'status', 'paid_at',
     ];
 
@@ -20,6 +20,7 @@ class WalletTopUp extends Model
             'gross_amount' => 'integer',
             'settled_amount' => 'integer',
             'paid_at' => 'datetime',
+            'snap_token' => 'string',
         ];
     }
 

@@ -12,6 +12,7 @@ use App\Http\Controllers\Customer\CustomerAuthController;
 use App\Http\Controllers\Customer\CustomerOrderController;
 use App\Http\Controllers\Customer\CustomerOrderingController;
 use App\Http\Controllers\Customer\CustomerWalletController;
+use App\Http\Controllers\Customer\PaymentInitiationController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\KdsController;
@@ -172,6 +173,12 @@ Route::group([], function () {
             ->middleware('throttle:20,1')->name('api.customer.wallet.topup');
         Route::post('/akun/saldo/topup-simulasi', [CustomerWalletController::class, 'simulateTopUp'])
             ->name('api.customer.wallet.topup.simulate');
+
+        // Inisiasi pembayaran Snap (R8.1–R8.6): ownership-scoped, idempotent.
+        Route::post('/orders/{order}/pay', [PaymentInitiationController::class, 'order'])
+            ->middleware('throttle:30,1')->name('api.orders.pay.initiate');
+        Route::post('/wallet-topups/{topUp}/pay', [PaymentInitiationController::class, 'topUp'])
+            ->middleware('throttle:30,1')->name('api.wallet-topups.pay.initiate');
 
         Route::middleware('customer.verified')->group(function () {
             Route::get('/meja', [CustomerOrderingController::class, 'menu'])->name('api.customer.order.menu');
