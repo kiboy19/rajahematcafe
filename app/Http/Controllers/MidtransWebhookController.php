@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Payments\Environment\EnvironmentClass;
+use App\Payments\Environment\FailClosedGuard;
 use App\Services\MidtransGatewayService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -15,7 +17,15 @@ class MidtransWebhookController extends Controller
      */
     public function __invoke(Request $request, MidtransGatewayService $gateway): JsonResponse
     {
-        if (! config('pos.midtrans.enabled')) {
+        if (EnvironmentClass::isPaused()) {
+            return response()->json(FailClosedGuard::webhookEnvelope(), 503);
+        }
+
+        if (FailClosedGuard::blocksWebhook()) {
+            return response()->json(FailClosedGuard::webhookEnvelope(), 503);
+        }
+
+        if (! EnvironmentClass::isEnabled()) {
             return response()->json(['message' => 'Gateway tidak aktif.'], 503);
         }
 
@@ -31,3 +41,4 @@ class MidtransWebhookController extends Controller
         return response()->json(['status' => 'ok']);
     }
 }
+

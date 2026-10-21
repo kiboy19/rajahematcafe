@@ -213,6 +213,14 @@ Route::get('/m/{token}', [CustomerOrderingController::class, 'scan'])->name('cus
 Route::post('/midtrans/webhook', MidtransWebhookController::class)
     ->name('midtrans.webhook');
 
+Route::get('/midtrans/maintenance', function () {
+    if (\App\Payments\Environment\EnvironmentClass::isPaused()) {
+        return response()->json(\App\Payments\Environment\FailClosedGuard::webhookEnvelope(), 503);
+    }
+
+    return response()->json(['status' => 'operational']);
+})->name('midtrans.maintenance');
+
 Route::name('customer.')->group(function () use ($page) {
     Route::middleware('guest:customer')->group(function () {
         Route::get('/masuk', [CustomerAuthController::class, 'showLogin'])->name('login');

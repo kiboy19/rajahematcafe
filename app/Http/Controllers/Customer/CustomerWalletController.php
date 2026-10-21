@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Customer;
 
 use App\Enums\WalletTransactionType;
 use App\Http\Controllers\Controller;
+use App\Payments\Environment\EnvironmentClass;
+use App\Payments\Environment\FailClosedGuard;
 use App\Services\MidtransGatewayService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -32,7 +34,9 @@ class CustomerWalletController extends Controller
                     ->limit(10)
                     ->get(),
                 'transactions' => $customer->walletTransactions()->latest('id')->limit(10)->get(),
-                'midtransEnabled' => (bool) config('pos.midtrans.enabled') && (string) config('pos.midtrans.server_key') !== '',
+                'midtransEnabled' => EnvironmentClass::isEnabled()
+                    && EnvironmentClass::serverKey() !== ''
+                    && ! EnvironmentClass::isFailClosed(),
             ],
         ]);
     }
@@ -56,7 +60,7 @@ class CustomerWalletController extends Controller
 
     public function simulateTopUp(Request $request, MidtransGatewayService $gateway): JsonResponse
     {
-        abort_unless(app()->environment(['local', 'testing']), 404);
+        abort_unless(FailClosedGuard::allowsMockRoutes(), 404);
 
         $validated = $request->validate(['order_id' => ['required', 'string', 'max:64']]);
         $transaction = $gateway->simulateSettlement(

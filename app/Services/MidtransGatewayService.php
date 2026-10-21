@@ -8,6 +8,9 @@ use App\Enums\PaymentStatus;
 use App\Enums\WalletTransactionType;
 use App\Models\AuditLog;
 use App\Models\Customer;
+use App\Payments\Environment\FailClosedGuard;
+use App\Payments\Environment\EnvironmentClass;
+use App\Payments\Environment\PaymentGatewayUnavailableException;
 use App\Models\GatewayTransaction;
 use App\Models\Order;
 use App\Models\Payment;
@@ -28,12 +31,26 @@ class MidtransGatewayService
         protected WalletService $wallet,
     ) {}
 
+    private function guardPaymentCreation(): void
+    {
+        if (! FailClosedGuard::blocksPaymentCreation()) {
+            return;
+        }
+
+        throw new PaymentGatewayUnavailableException;
+    }
+
+    private function serverKey(): string
+    {
+        return EnvironmentClass::serverKey();
+    }
+
     /**
      * URL basis API Snap Midtrans (sandbox vs production).
      */
     public function snapBaseUrl(): string
     {
-        return config('pos.midtrans.is_production')
+        return EnvironmentClass::isProduction()
             ? 'https://app.midtrans.com/snap/v1/transactions'
             : 'https://app.sandbox.midtrans.com/snap/v1/transactions';
     }
@@ -48,6 +65,8 @@ class MidtransGatewayService
      */
     public function createCustomerTopUp(Customer $customer, int $amount): array
     {
+        $this->guardPaymentCreation();
+
         $min = (int) config('pos.wallet_min_topup');
         if ($amount < $min) {
             throw ValidationException::withMessages([
@@ -55,8 +74,8 @@ class MidtransGatewayService
             ]);
         }
 
-        $serverKey = (string) config('pos.midtrans.server_key');
-        $enabled = (bool) config('pos.midtrans.enabled');
+        $serverKey = $this->serverKey();
+        $enabled = EnvironmentClass::isEnabled();
         $orderId = 'TOPUP-'.$customer->id.'-'.time().'-'.bin2hex(random_bytes(3));
         $idempotencyKey = GatewayTransaction::idempotencyKey('midtrans', $orderId.':pending:create');
 
@@ -123,7 +142,12 @@ class MidtransGatewayService
             }
         }
 
-        // Mode simulasi/lokal jika Midtrans belum diaktifkan di .env (mis. pengujian lokal)
+        // Mode simulasi hanya untuk tier local/testing yang lolos gate environment;
+        // di staging/production/resolved-fail-closed tidak pernah membuat transaksi palsu.
+        if (! FailClosedGuard::allowsMockRoutes()) {
+            throw new PaymentGatewayUnavailableException;
+        }
+
         GatewayTransaction::query()->create([
             'provider' => 'midtrans',
             'provider_reference' => $orderId,
@@ -151,6 +175,8 @@ class MidtransGatewayService
      */
     public function simulateSettlement(Customer $customer, string $orderId): GatewayTransaction
     {
+        abort_unless(FailClosedGuard::allowsMockRoutes(), 404);
+
         $gatewayTrx = GatewayTransaction::query()
             ->where('provider_reference', $orderId)
             ->where('customer_id', $customer->id)
@@ -239,8 +265,10 @@ class MidtransGatewayService
      */
     public function createOrderPayment(Order $order): array
     {
-        $serverKey = (string) config('pos.midtrans.server_key');
-        $enabled = (bool) config('pos.midtrans.enabled');
+        $this->guardPaymentCreation();
+
+        $serverKey = $this->serverKey();
+        $enabled = EnvironmentClass::isEnabled();
         $orderId = $order->number;
         $idempotencyKey = GatewayTransaction::idempotencyKey('midtrans', $orderId.':pending');
 
@@ -297,6 +325,12 @@ class MidtransGatewayService
             ];
         }
 
+        // Mode simulasi hanya untuk tier local/testing yang lolos gate environment;
+        // di staging/production/resolved-fail-closed tidak pernah membuat transaksi palsu.
+        if (! FailClosedGuard::allowsMockRoutes()) {
+            throw new PaymentGatewayUnavailableException;
+        }
+
         GatewayTransaction::query()->updateOrCreate(
             ['idempotency_key' => $idempotencyKey],
             [
@@ -334,20 +368,30 @@ class MidtransGatewayService
      */
     public function verifySignature(array $payload, ?string $serverKey = null): bool
     {
-        $serverKey ??= (string) config('pos.midtrans.server_key');
+        $candidates = $serverKey !== null ? [$serverKey] : EnvironmentClass::verificationKeys();
 
-        if ($serverKey === '' || ! isset($payload['order_id'], $payload['status_code'], $payload['gross_amount'], $payload['signature_key'])) {
+        if (! isset($payload['order_id'], $payload['status_code'], $payload['gross_amount'], $payload['signature_key'])) {
             return false;
         }
 
-        $expected = $this->generateSignature(
-            (string) $payload['order_id'],
-            (string) $payload['status_code'],
-            (string) $payload['gross_amount'],
-            $serverKey,
-        );
+        foreach ($candidates as $candidate) {
+            if ($candidate === '') {
+                continue;
+            }
 
-        return hash_equals($expected, (string) $payload['signature_key']);
+            $expected = $this->generateSignature(
+                (string) $payload['order_id'],
+                (string) $payload['status_code'],
+                (string) $payload['gross_amount'],
+                $candidate,
+            );
+
+            if (hash_equals($expected, (string) $payload['signature_key'])) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

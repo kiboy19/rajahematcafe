@@ -9,6 +9,7 @@ use App\Models\Category;
 use App\Models\Customer;
 use App\Models\MenuItem;
 use App\Models\Order;
+use App\Payments\Environment\FailClosedGuard;
 use App\Services\CustomerCheckoutService;
 use App\Services\MidtransGatewayService;
 use App\Services\MoneyCalculator;
@@ -271,7 +272,7 @@ class CustomerOrderingController extends Controller
      */
     public function simulatePayment(Request $request, Order $order, MidtransGatewayService $gateway): JsonResponse
     {
-        abort_unless(app()->environment(['local', 'testing']), 404);
+        abort_unless(FailClosedGuard::allowsMockRoutes(), 404);
 
         /** @var Customer $customer */
         $customer = $request->user('customer');
