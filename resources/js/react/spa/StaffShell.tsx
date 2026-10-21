@@ -1,31 +1,9 @@
 import { useState, type ReactNode } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { apiRequest } from '@/react/lib/api';
+import { routeToPath, isActivePath } from './navigation';
 import { Button, Toast } from './ui';
 import type { StaffUser } from './session';
-
-function routeToPath(route: string): string {
-    const map: Record<string, string> = {
-        dashboard: '/dashboard',
-        'pos.index': '/pos',
-        'wallet.index': '/saldo',
-        'cashier.session': '/sesi-kasir',
-        'orders.index': '/pesanan',
-        'kds.index': '/kds',
-        'reports.daily': '/laporan/harian',
-        'categories.index': '/kategori',
-        'menu-items.index': '/menu',
-        'inventory.index': '/inventory',
-        'suppliers.index': '/supplier',
-        'purchase-orders.index': '/purchase-order',
-        'settings.billing.edit': '/pengaturan/tagihan',
-        'tables.index': '/kelola-meja',
-        'tables.qr': '/meja/qr',
-        'vouchers.index': '/voucher',
-    };
-
-    return map[route] ?? '/dashboard';
-}
 
 function NavIcon({ name }: { name: string }) {
     switch (name) {
@@ -137,13 +115,14 @@ export function StaffShell({
 
                             {user.navigation.map((item) => {
                                 const path = routeToPath(item.route);
-                                const isActive = location.pathname === path || (path !== '/dashboard' && location.pathname.startsWith(path));
+                                const isActive = isActivePath(location.pathname, item.route);
 
                                 return (
                                     <Link
                                         key={item.route}
                                         to={path}
                                         onClick={() => setNavOpen(false)}
+                                        aria-current={isActive ? 'page' : undefined}
                                         className={`px-3 py-2.5 rounded-input text-sm font-semibold flex items-center gap-2.5 transition-colors ${
                                             isActive
                                                 ? 'bg-primary text-white shadow-1'

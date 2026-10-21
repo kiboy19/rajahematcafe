@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useResource } from '../hooks';
+import { routeToPath } from '../navigation';
 import { Button, Loading, Money, PageHeader, Panel, StatCard } from '../ui';
 import type { StaffUser } from '../session';
 
@@ -87,7 +88,7 @@ export function DashboardPage({ user }: { user: StaffUser }) {
                     {user.navigation.map((item) => (
                         <Link
                             key={item.route}
-                            to={item.route === 'dashboard' ? '/dashboard' : `/${item.route.replace('.index', '').replace('settings.billing.edit', 'pengaturan/tagihan').replace('reports.daily', 'laporan/harian').replace('tables.qr', 'meja/qr').replace('cashier.session', 'sesi-kasir').replace('wallet', 'saldo').replace('orders', 'pesanan')}`}
+                            to={routeToPath(item.route)}
                             className="p-4 rounded-card border border-line bg-surface shadow-1 hover:border-primary transition-colors flex flex-col justify-between"
                         >
                             <span className="font-bold text-sm text-ink">{item.label}</span>
