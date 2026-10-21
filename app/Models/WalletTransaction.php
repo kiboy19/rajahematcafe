@@ -10,7 +10,7 @@ class WalletTransaction extends Model
 {
     protected $fillable = [
         'customer_id', 'type', 'amount', 'balance_after',
-        'cashier_session_id', 'cashier_id', 'payment_id', 'note',
+        'cashier_session_id', 'cashier_id', 'payment_id', 'note', 'reference',
     ];
 
     protected function casts(): array

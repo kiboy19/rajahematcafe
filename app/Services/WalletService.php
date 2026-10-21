@@ -15,6 +15,9 @@ use Illuminate\Validation\ValidationException;
 /**
  * Satu-satunya jalur perubahan saldo pelanggan. Setiap perubahan menulis baris
  * ledger (tidak pernah dihapus) dan memperbarui saldo ter-cache pada baris pelanggan.
+ *
+ * Top-up online dari gateway WAJIB memakai `reference` unik (mis. `midtrans:credit:{orderRef}:{eventKey}`)
+ * sehingga sebuah event yang diputar ulang tidak pernah menulis baris ledger kedua.
  */
 class WalletService
 {
@@ -26,6 +29,7 @@ class WalletService
         ?User $cashier = null,
         ?string $note = null,
         ?Payment $payment = null,
+        ?string $reference = null,
     ): WalletTransaction {
         if ($amount <= 0) {
             throw ValidationException::withMessages(['amount' => 'Nominal saldo harus lebih dari nol.']);
@@ -39,7 +43,76 @@ class WalletService
             $this->assertWithinDailyLimit($customer, $amount);
         }
 
-        return $this->post($customer, $type, $amount, $session, $cashier, $note, $payment);
+        return $this->post($customer, $type, $amount, $session, $cashier, $note, $payment, $reference);
+    }
+
+    /**
+     * Kredit top-up online yang idempotent. `reference` bersifat wajib dan unik:
+     * pengamatan kedua dengan referensi yang sama mengembalikan baris ledger yang
+     * sudah ada tanpa menyentuh saldo. Operasi ini berjalan di dalam transaksi
+     * bisnis pemanggil (tidak membuka transaksi sendiri) supaya efek bisnis,
+     * ledger, dan audit commit bersama.
+     */
+    public function creditTopUp(
+        Customer $customer,
+        int $amount,
+        string $reference,
+        ?string $note = null,
+    ): WalletTransaction {
+        if ($reference === '') {
+            throw ValidationException::withMessages(['reference' => 'Referensi top-up wajib diisi.']);
+        }
+
+        if ($amount <= 0) {
+            throw ValidationException::withMessages(['amount' => 'Nominal saldo harus lebih dari nol.']);
+        }
+
+        $existing = WalletTransaction::query()->where('reference', $reference)->first();
+        if ($existing !== null) {
+            return $existing;
+        }
+
+        $this->assertWithinDailyLimit($customer, $amount);
+
+        return $this->post($customer, WalletTransactionType::TopUp, $amount, null, null, $note, null, $reference);
+    }
+
+    /**
+     * Balikkan kredit top-up berdasarkan `reference` kredit semula. Idempotent:
+     * pemanggilan kedua untuk transaksi yang sudah dibalik mengembalikan baris
+     * debit yang sudah ada tanpa mengubah saldo lagi.
+     */
+    public function reverseCredit(string $reference, ?string $note = null): ?WalletTransaction
+    {
+        if ($reference === '') {
+            throw ValidationException::withMessages(['reference' => 'Referensi pembalikan wajib diisi.']);
+        }
+
+        $reversalReference = 'reverse:'.$reference;
+
+        $existing = WalletTransaction::query()->where('reference', $reversalReference)->first();
+        if ($existing !== null) {
+            return $existing;
+        }
+
+        $original = WalletTransaction::query()->where('reference', $reference)->first();
+        if ($original === null) {
+            return null;
+        }
+
+        $amount = abs((int) $original->amount);
+        $customer = $original->customer ?? Customer::query()->findOrFail($original->customer_id);
+
+        return $this->post(
+            $customer,
+            WalletTransactionType::Refund,
+            -$amount,
+            null,
+            null,
+            $note ?? 'Pembalikan top-up (Ref: '.$reference.')',
+            null,
+            $reversalReference,
+        );
     }
 
     /**
@@ -75,34 +148,67 @@ class WalletService
         ?User $cashier,
         ?string $note,
         ?Payment $payment,
+        ?string $reference = null,
     ): WalletTransaction {
-        return DB::transaction(function () use ($customer, $type, $amount, $session, $cashier, $note, $payment): WalletTransaction {
-            // Kunci baris pelanggan: dua permintaan bersamaan tidak boleh memakai saldo yang sama.
-            $locked = Customer::query()->lockForUpdate()->findOrFail($customer->id);
-            $balanceAfter = (int) $locked->balance + $amount;
+        // Jalur admin/kasir (reference null) mengelola transaksinya sendiri;
+        // jalur gateway (reference terisi) berbagi transaksi bisnis pemanggil
+        // sehingga efek bisnis dan ledger rollback bersama.
+        if ($reference === null) {
+            return DB::transaction(fn (): WalletTransaction => $this->write(
+                $customer, $type, $amount, $session, $cashier, $note, $payment, null, true,
+            ));
+        }
 
-            if ($balanceAfter < 0) {
-                throw ValidationException::withMessages([
-                    'amount' => 'Saldo tidak cukup. Sisa saldo: Rp'.number_format((int) $locked->balance, 0, ',', '.').'.',
-                ]);
+        return $this->write($customer, $type, $amount, $session, $cashier, $note, $payment, $reference, false);
+    }
+
+    private function write(
+        Customer $customer,
+        WalletTransactionType $type,
+        int $amount,
+        ?CashierSession $session,
+        ?User $cashier,
+        ?string $note,
+        ?Payment $payment,
+        ?string $reference,
+        bool $lockCustomer,
+    ): WalletTransaction {
+        if ($reference !== null) {
+            $existing = WalletTransaction::query()->where('reference', $reference)->first();
+            if ($existing !== null) {
+                return $existing;
             }
+        }
 
-            $transaction = WalletTransaction::query()->create([
-                'customer_id' => $locked->id,
-                'type' => $type,
-                'amount' => $amount,
-                'balance_after' => $balanceAfter,
-                'cashier_session_id' => $session?->id,
-                'cashier_id' => $cashier?->id,
-                'payment_id' => $payment?->id,
-                'note' => $note,
+        // Kunci baris pelanggan: dua permintaan bersamaan tidak boleh memakai saldo yang sama.
+        $locked = $lockCustomer
+            ? Customer::query()->lockForUpdate()->findOrFail($customer->id)
+            : Customer::query()->findOrFail($customer->id);
+
+        $balanceAfter = (int) $locked->balance + $amount;
+
+        if ($balanceAfter < 0) {
+            throw ValidationException::withMessages([
+                'amount' => 'Saldo tidak cukup. Sisa saldo: Rp'.number_format((int) $locked->balance, 0, ',', '.').'.',
             ]);
+        }
 
-            $locked->update(['balance' => $balanceAfter]);
-            $customer->setAttribute('balance', $balanceAfter);
+        $transaction = WalletTransaction::query()->create([
+            'customer_id' => $locked->id,
+            'type' => $type,
+            'amount' => $amount,
+            'balance_after' => $balanceAfter,
+            'cashier_session_id' => $session?->id,
+            'cashier_id' => $cashier?->id,
+            'payment_id' => $payment?->id,
+            'note' => $note,
+            'reference' => $reference,
+        ]);
 
-            return $transaction;
-        });
+        $locked->update(['balance' => $balanceAfter]);
+        $customer->setAttribute('balance', $balanceAfter);
+
+        return $transaction;
     }
 
     /**

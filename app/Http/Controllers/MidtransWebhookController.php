@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Payments\Environment\EnvironmentClass;
-use App\Payments\Environment\FailClosedGuard;
 use App\Enums\GatewayResultToken;
 use App\Exceptions\PreCommitTimeoutException;
+use App\Payments\Environment\EnvironmentClass;
+use App\Payments\Environment\FailClosedGuard;
 use App\Services\AuditRecorder;
 use App\Services\MidtransGatewayService;
 use App\Support\Clock;
@@ -39,7 +39,7 @@ class MidtransWebhookController extends Controller
         }
 
         if (! EnvironmentClass::isEnabled()) {
-            return response()->json(['message' => 'Gateway tidak aktif.'], 503);
+            return GatewayResponse::for(GatewayResultToken::ProviderUnavailable);
         }
 
         $payload = $request->all();
@@ -96,4 +96,3 @@ class MidtransWebhookController extends Controller
         return GatewayResponse::for(GatewayResultToken::ProviderTimeout);
     }
 }
-

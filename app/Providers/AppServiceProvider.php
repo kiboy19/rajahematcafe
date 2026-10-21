@@ -2,11 +2,14 @@
 
 namespace App\Providers;
 
+use App\Payments\Environment\EnvironmentClass;
 use App\Payments\Midtrans\HttpMidtransClient;
 use App\Payments\Midtrans\MidtransClient;
+use App\Payments\Support\SettlementBarrier;
 use App\Support\Clock;
 use App\Support\SystemClock;
 use Illuminate\Support\ServiceProvider;
+use Tests\Support\FakeMidtransClient;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -16,9 +19,10 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->singleton(Clock::class, SystemClock::class);
+        $this->app->singleton(SettlementBarrier::class);
 
         $this->app->bind(MidtransClient::class, function () {
-            $env = app(\App\Payments\Environment\EnvironmentClass::class);
+            $env = app(EnvironmentClass::class);
             if ($env->isSandbox() && (bool) env('POS_MIDTRANS_SANDBOX_ENABLED', false)) {
                 $serverKey = (string) env('MIDTRANS_SANDBOX_SERVER_KEY', '');
                 if ($serverKey !== '') {
@@ -32,7 +36,7 @@ class AppServiceProvider extends ServiceProvider
                 }
             }
 
-            return app(\Tests\Support\FakeMidtransClient::class);
+            return app(FakeMidtransClient::class);
         });
     }
 

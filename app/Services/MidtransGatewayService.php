@@ -10,13 +10,15 @@ use App\Enums\WalletTransactionType;
 use App\Exceptions\PreCommitTimeoutException;
 use App\Models\AuditLog;
 use App\Models\Customer;
-use App\Payments\Environment\FailClosedGuard;
-use App\Payments\Environment\EnvironmentClass;
-use App\Payments\Environment\PaymentGatewayUnavailableException;
 use App\Models\GatewayTransaction;
 use App\Models\Order;
 use App\Models\Payment;
 use App\Models\WalletTopUp;
+use App\Payments\Context\PaymentContext;
+use App\Payments\Environment\EnvironmentClass;
+use App\Payments\Environment\FailClosedGuard;
+use App\Payments\Environment\PaymentGatewayUnavailableException;
+use App\Payments\Notification\NormalizedObservation;
 use App\Support\Clock;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\DB;
@@ -478,7 +480,7 @@ class MidtransGatewayService
         $providerEventKey = $orderId.':'.$transactionStatus.':'.$statusCode;
         $payloadDigest = hash('sha256', (string) json_encode($payload, JSON_UNESCAPED_SLASHES));
 
-        return DB::transaction(function () use ($payload, $orderId, $transactionStatus, $payloadDigest, $providerEventKey, $idempotencyKey, $pipelineStartMs): GatewayNotificationResult {
+        return DB::transaction(function () use ($payload, $orderId, $statusCode, $transactionStatus, $payloadDigest, $providerEventKey, $idempotencyKey, $pipelineStartMs): GatewayNotificationResult {
             $fraudStatus = (string) ($payload['fraud_status'] ?? '');
             $grossAmount = $this->parseGrossAmount((string) ($payload['gross_amount'] ?? '0'));
             $currency = (string) ($payload['currency'] ?? 'IDR');
@@ -566,46 +568,25 @@ class MidtransGatewayService
                 'settled_at' => $isSettlement ? now() : null,
             ]);
 
-            if ($isSettlement) {
-                if ($isTopUp && $customer) {
-                    $walletTrx = $this->wallet->credit(
-                        customer: $customer,
-                        type: WalletTransactionType::TopUp,
-                        amount: $grossAmount,
-                        note: 'Top-up online Midtrans (Ref: '.$orderId.')',
-                    );
-                    $gatewayTrx->update(['wallet_transaction_id' => $walletTrx->id]);
-                } elseif ($order !== null) {
-                    // Pelunasan online. Payment pending dari checkout diperbarui,
-                    // bukan ditulis dua kali (reference unik, metode dipetakan dari
-                    // payment_type Midtrans: bank transfer/*_va -> Virtual Account).
-                    $payment = Payment::query()->firstOrCreate(
-                        ['reference' => 'MIDTRANS-'.$orderId],
-                        [
-                            'order_id' => $order->id,
-                            'method' => $this->paymentMethodFrom($payload['payment_type'] ?? ''),
-                            'status' => PaymentStatus::Paid,
-                            'amount' => $grossAmount,
-                            'tendered' => $grossAmount,
-                            'change' => 0,
-                            'paid_at' => now(),
-                        ],
-                    );
+            $internalContext = $isTopUp && $customer
+                ? new PaymentContext($gatewayTrx, null, null, $customer->id, 'topup', $customer->id)
+                : ($order !== null ? new PaymentContext($gatewayTrx, $order, null, $order->customer_id, 'payment', $order->id) : null);
 
-                    $order->update(['paid_at' => now()]);
+            $resultToken = GatewayResultToken::Processed;
 
-                    // Hanya pesanan yang menunggu pembayaran yang dipromosikan;
-                    // pesanan kasir tidak boleh tersentuh logika ini.
-                    if ($order->status === OrderStatus::MenungguPembayaran) {
-                        $order->update(['status' => OrderStatus::Baru]);
-                    }
-                }
-
-                AuditLog::record('gateway.settlement', $gatewayTrx, after: [
-                    'order_id' => $orderId,
-                    'status' => $transactionStatus,
-                    'gross_amount' => $grossAmount,
-                ]);
+            if ($internalContext !== null) {
+                $observation = new NormalizedObservation(
+                    orderId: $orderId,
+                    statusCode: $statusCode,
+                    grossAmount: (string) ($payload['gross_amount'] ?? '0'),
+                    signatureKey: (string) ($payload['signature_key'] ?? ''),
+                    payloadDigest: $payloadDigest,
+                    payloadEncrypted: '',
+                    rawFields: array_map(static fn ($value): string => is_scalar($value) ? (string) $value : '', $payload),
+                    currency: $currency,
+                    normalizedAmount: number_format($grossAmount, 2, '.', ''),
+                );
+                $resultToken = app(SettlementService::class)->processSettlement($internalContext, $observation);
             }
 
             // Timeout dipastikan tepat sebelum transaksi commit; exception ini
@@ -621,7 +602,7 @@ class MidtransGatewayService
             // Claim audit dalam transaksi yang sama dengan efek bisnis.
             $this->auditRecorder->claim(
                 $providerEventKey,
-                GatewayResultToken::Processed->value,
+                $resultToken->value,
                 $payloadDigest,
                 [
                     'event_type' => 'webhook',
@@ -631,7 +612,7 @@ class MidtransGatewayService
                 ],
             );
 
-            return new GatewayNotificationResult($gatewayTrx, GatewayResultToken::Processed);
+            return new GatewayNotificationResult($gatewayTrx, $resultToken);
         });
     }
 }

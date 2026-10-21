@@ -21,7 +21,7 @@ final class ObservationPipeline
      * Runs notification phases in the only supported order. Settlement is
      * injected so webhook, polling, reconciliation, and replay share this boundary.
      *
-     * @param callable(PaymentContextResolver, NormalizedObservation): GatewayResultToken|null $settle
+     * @param callable(PaymentContext, NormalizedObservation): GatewayResultToken|null $settle
      */
     public function observe(
         string $rawBody,
