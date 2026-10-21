@@ -40,6 +40,8 @@ return [
         'merchant_id' => env('MIDTRANS_MERCHANT_ID', ''),
         'is_production' => (bool) env('MIDTRANS_IS_PRODUCTION', false),
         'enabled' => (bool) env('MIDTRANS_ENABLED', false),
+        // Batas waktu pre-commit webhook (detik). Melewati batas ⇒ rollback + 503.
+        'webhook_timeout_seconds' => (int) env('MIDTRANS_WEBHOOK_TIMEOUT_SECONDS', 5),
     ],
 
     'currency' => 'IDR',

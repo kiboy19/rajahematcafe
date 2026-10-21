@@ -25,16 +25,35 @@ class MidtransWebhookTest extends TestCase
         ]);
     }
 
+    protected function signedPayload(string $orderId, string $grossAmount, string $statusCode = '200'): array
+    {
+        $signature = app(MidtransGatewayService::class)->generateSignature(
+            $orderId,
+            $statusCode,
+            $grossAmount,
+            $this->serverKey,
+        );
+
+        return [
+            'order_id' => $orderId,
+            'status_code' => $statusCode,
+            'gross_amount' => $grossAmount,
+            'signature_key' => $signature,
+            'transaction_status' => 'settlement',
+        ];
+    }
+
     public function test_disabled_midtrans_rejects_with_503(): void
     {
         config(['pos.midtrans.enabled' => false]);
 
         $response = $this->postJson(route('midtrans.webhook'), []);
 
-        $response->assertStatus(503);
+        $response->assertStatus(503)
+            ->assertExactJson(['status' => 'error', 'message' => 'provider_unavailable']);
     }
 
-    public function test_invalid_signature_is_rejected_with_403(): void
+    public function test_invalid_signature_is_rejected_with_200_signature_invalid(): void
     {
         $payload = [
             'order_id' => 'ORD-20261020-0001',
@@ -46,7 +65,8 @@ class MidtransWebhookTest extends TestCase
 
         $response = $this->postJson(route('midtrans.webhook'), $payload);
 
-        $response->assertStatus(403);
+        $response->assertOk()
+            ->assertExactJson(['status' => 'success', 'message' => 'signature_invalid']);
         $this->assertDatabaseEmpty('gateway_transactions');
     }
 
@@ -54,27 +74,11 @@ class MidtransWebhookTest extends TestCase
     {
         $customer = Customer::factory()->create(['balance' => 0]);
         $orderId = 'TOPUP-'.$customer->id.'-123456';
-        $grossAmount = '50000';
-        $statusCode = '200';
 
-        $signature = app(MidtransGatewayService::class)->generateSignature(
-            $orderId,
-            $statusCode,
-            $grossAmount,
-            $this->serverKey,
-        );
+        $response = $this->postJson(route('midtrans.webhook'), $this->signedPayload($orderId, '50000'));
 
-        $payload = [
-            'order_id' => $orderId,
-            'status_code' => $statusCode,
-            'gross_amount' => $grossAmount,
-            'signature_key' => $signature,
-            'transaction_status' => 'settlement',
-        ];
-
-        $response = $this->postJson(route('midtrans.webhook'), $payload);
-
-        $response->assertOk();
+        $response->assertOk()
+            ->assertExactJson(['status' => 'success', 'message' => 'processed']);
 
         $this->assertDatabaseHas('gateway_transactions', [
             'provider' => 'midtrans',
@@ -94,28 +98,10 @@ class MidtransWebhookTest extends TestCase
             'total' => 25000,
         ]);
 
-        $orderId = $order->number;
-        $grossAmount = '25000';
-        $statusCode = '200';
+        $response = $this->postJson(route('midtrans.webhook'), $this->signedPayload($order->number, '25000'));
 
-        $signature = app(MidtransGatewayService::class)->generateSignature(
-            $orderId,
-            $statusCode,
-            $grossAmount,
-            $this->serverKey,
-        );
-
-        $payload = [
-            'order_id' => $orderId,
-            'status_code' => $statusCode,
-            'gross_amount' => $grossAmount,
-            'signature_key' => $signature,
-            'transaction_status' => 'settlement',
-        ];
-
-        $response = $this->postJson(route('midtrans.webhook'), $payload);
-
-        $response->assertOk();
+        $response->assertOk()
+            ->assertExactJson(['status' => 'success', 'message' => 'processed']);
 
         $this->assertDatabaseHas('payments', [
             'order_id' => $order->id,
@@ -130,35 +116,25 @@ class MidtransWebhookTest extends TestCase
     {
         $customer = Customer::factory()->create(['balance' => 0]);
         $orderId = 'TOPUP-'.$customer->id.'-789012';
-        $grossAmount = '30000';
-        $statusCode = '200';
+        $payload = $this->signedPayload($orderId, '30000');
 
-        $signature = app(MidtransGatewayService::class)->generateSignature(
-            $orderId,
-            $statusCode,
-            $grossAmount,
-            $this->serverKey,
-        );
-
-        $payload = [
-            'order_id' => $orderId,
-            'status_code' => $statusCode,
-            'gross_amount' => $grossAmount,
-            'signature_key' => $signature,
-            'transaction_status' => 'settlement',
-        ];
-
-        // First call
         $first = $this->postJson(route('midtrans.webhook'), $payload);
-        $first->assertOk();
+        $first->assertOk()->assertExactJson(['status' => 'success', 'message' => 'processed']);
         $this->assertSame(30000, $customer->fresh()->balance);
 
-        // Replay call with identical payload
         $second = $this->postJson(route('midtrans.webhook'), $payload);
-        $second->assertOk();
+        $second->assertOk()->assertExactJson(['status' => 'success', 'message' => 'duplicate_ignored']);
 
-        // Balance remains 30000 (not 60000)
         $this->assertSame(30000, $customer->fresh()->balance);
         $this->assertSame(1, GatewayTransaction::query()->count());
+    }
+
+    public function test_unknown_reference_is_terminal_200_without_effects(): void
+    {
+        $response = $this->postJson(route('midtrans.webhook'), $this->signedPayload('ORD-DOES-NOT-EXIST', '10000'));
+
+        $response->assertOk()
+            ->assertExactJson(['status' => 'success', 'message' => 'unknown_reference']);
+        $this->assertDatabaseEmpty('gateway_transactions');
     }
 }
