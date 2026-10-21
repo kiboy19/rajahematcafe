@@ -81,14 +81,19 @@ class WalletService
      * Balikkan kredit top-up berdasarkan `reference` kredit semula. Idempotent:
      * pemanggilan kedua untuk transaksi yang sudah dibalik mengembalikan baris
      * debit yang sudah ada tanpa mengubah saldo lagi.
+     *
+     * `$reversalKey` membedakan pembalikan parsial: satu kredit dapat dibalik
+     * beberapa kali (mis. dua refund sebagian) bila setiap pembalikan membawa
+     * kunci unik (id refund provider). Tanpa kunci, satu kredit hanya dapat
+     * dibalik sekali.
      */
-    public function reverseCredit(string $reference, ?string $note = null): ?WalletTransaction
+    public function reverseCredit(string $reference, ?string $note = null, ?int $amount = null, ?string $reversalKey = null): ?WalletTransaction
     {
         if ($reference === '') {
             throw ValidationException::withMessages(['reference' => 'Referensi pembalikan wajib diisi.']);
         }
 
-        $reversalReference = 'reverse:'.$reference;
+        $reversalReference = 'reverse:'.$reference.($reversalKey !== null && $reversalKey !== '' ? ':'.$reversalKey : '');
 
         $existing = WalletTransaction::query()->where('reference', $reversalReference)->first();
         if ($existing !== null) {
@@ -100,7 +105,11 @@ class WalletService
             return null;
         }
 
-        $amount = abs((int) $original->amount);
+        $origAmount = abs((int) $original->amount);
+        $amount = $amount === null ? $origAmount : abs($amount);
+        if ($amount <= 0 || $amount > $origAmount) {
+            throw ValidationException::withMessages(['amount' => 'Nominal pembalikan harus antara nol dan nominal kredit semula.']);
+        }
         $customer = $original->customer ?? Customer::query()->findOrFail($original->customer_id);
 
         return $this->post(

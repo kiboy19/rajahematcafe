@@ -21,6 +21,7 @@ class Order extends Model
         'number', 'channel', 'status', 'cashier_id', 'customer_id', 'voucher_id', 'table_label',
         'subtotal', 'discount', 'tax', 'service', 'total', 'midtrans_order_id', 'snap_token',
         'tax_percent', 'service_percent', 'note', 'placed_at', 'paid_at', 'closed_at',
+        'settled_amount', 'midtrans_order_id',
     ];
 
     protected function casts(): array

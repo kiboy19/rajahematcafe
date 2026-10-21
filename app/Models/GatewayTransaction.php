@@ -31,8 +31,12 @@ class GatewayTransaction extends Model
             'gross_amount' => 'integer',
             'fee_amount' => 'integer',
             'net_amount' => 'integer',
+            'settled_amount' => 'decimal:2',
             'payload' => 'array',
             'settled_at' => 'datetime',
+            'refunded_at' => 'datetime',
+            'last_observed_at' => 'datetime',
+            'poll_locked_until' => 'datetime',
         ];
     }
 

@@ -525,12 +525,18 @@ class MidtransGatewayService
             $isTopUp = str_starts_with($orderId, 'TOPUP-');
             $customer = null;
             $order = null;
+            $walletTopUp = null;
 
             if ($isTopUp) {
-                // Format: TOPUP-{customerId}-{timestamp}
-                $parts = explode('-', $orderId);
-                $customerId = isset($parts[1]) ? (int) $parts[1] : 0;
-                $customer = Customer::query()->find($customerId);
+                $walletTopUp = WalletTopUp::query()->where('midtrans_order_id', $orderId)->first();
+                if ($walletTopUp !== null) {
+                    $customer = $walletTopUp->customer;
+                } else {
+                    // Legacy format: TOPUP-{customerId}-{timestamp}
+                    $parts = explode('-', $orderId);
+                    $customerId = isset($parts[1]) ? (int) $parts[1] : 0;
+                    $customer = Customer::query()->find($customerId);
+                }
             } else {
                 $order = Order::query()->where('number', $orderId)->first();
                 $customer = $order?->customer;
@@ -548,28 +554,43 @@ class MidtransGatewayService
                 return new GatewayNotificationResult(null, GatewayResultToken::UnknownReference);
             }
 
-            $gatewayTrx = GatewayTransaction::query()->create([
-                'provider' => 'midtrans',
-                'provider_reference' => $orderId,
-                'idempotency_key' => $idempotencyKey,
-                'type' => $isTopUp ? 'topup' : 'payment',
-                'status' => $isSettlement ? 'settlement' : $transactionStatus,
-                'gross_amount' => $grossAmount,
-                'fee_amount' => 0,
-                'net_amount' => $grossAmount,
-                'payload' => $payload,
-                'payload_digest' => $payloadDigest,
-                'signature' => (string) ($payload['signature_key'] ?? null),
-                'customer_id' => $customer?->id,
-                'order_id' => $order?->id,
-                'internal_type' => $isTopUp ? 'wallet_top_up' : 'order',
-                'internal_id' => $isTopUp ? $customer?->id : $order?->id,
-                'midtrans_order_id' => $orderId,
-                'settled_at' => $isSettlement ? now() : null,
-            ]);
+            $gatewayTrx = GatewayTransaction::query()
+                ->where('midtrans_order_id', $orderId)
+                ->orderBy('id')
+                ->first();
+
+            if ($gatewayTrx === null) {
+                $gatewayTrx = GatewayTransaction::query()->create([
+                    'provider' => 'midtrans',
+                    'provider_reference' => $orderId,
+                    'idempotency_key' => $idempotencyKey,
+                    'type' => $isTopUp ? 'topup' : 'payment',
+                    'status' => $isSettlement ? 'settlement' : $transactionStatus,
+                    'gross_amount' => $grossAmount,
+                    'fee_amount' => 0,
+                    'net_amount' => $grossAmount,
+                    'payload' => $payload,
+                    'payload_digest' => $payloadDigest,
+                    'signature' => (string) ($payload['signature_key'] ?? null),
+                    'customer_id' => $customer?->id,
+                    'order_id' => $order?->id,
+                    'internal_type' => $isTopUp ? 'wallet_top_up' : 'order',
+                    'internal_id' => $isTopUp ? ($walletTopUp?->id ?? $customer?->id) : $order?->id,
+                    'midtrans_order_id' => $orderId,
+                    'settled_at' => $isSettlement ? now() : null,
+                ]);
+            } else {
+                $gatewayTrx->fill([
+                    'status' => $isSettlement ? 'settlement' : $transactionStatus,
+                    'payload' => $payload,
+                    'payload_digest' => $payloadDigest,
+                    'signature' => (string) ($payload['signature_key'] ?? null),
+                    'settled_at' => $isSettlement ? ($gatewayTrx->settled_at ?? now()) : $gatewayTrx->settled_at,
+                ])->save();
+            }
 
             $internalContext = $isTopUp && $customer
-                ? new PaymentContext($gatewayTrx, null, null, $customer->id, 'topup', $customer->id)
+                ? new PaymentContext($gatewayTrx, null, $walletTopUp, $customer->id, 'topup', $walletTopUp?->id ?? $customer->id)
                 : ($order !== null ? new PaymentContext($gatewayTrx, $order, null, $order->customer_id, 'payment', $order->id) : null);
 
             $resultToken = GatewayResultToken::Processed;
@@ -582,11 +603,11 @@ class MidtransGatewayService
                     signatureKey: (string) ($payload['signature_key'] ?? ''),
                     payloadDigest: $payloadDigest,
                     payloadEncrypted: '',
-                    rawFields: array_map(static fn ($value): string => is_scalar($value) ? (string) $value : '', $payload),
+                    rawFields: array_map(static fn ($value): mixed => is_scalar($value) ? (string) $value : $value, $payload),
                     currency: $currency,
                     normalizedAmount: number_format($grossAmount, 2, '.', ''),
                 );
-                $resultToken = app(SettlementService::class)->processSettlement($internalContext, $observation);
+                $resultToken = $this->dispatchObservation($internalContext, $observation);
             }
 
             // Timeout dipastikan tepat sebelum transaksi commit; exception ini
@@ -614,5 +635,32 @@ class MidtransGatewayService
 
             return new GatewayNotificationResult($gatewayTrx, $resultToken);
         });
+    }
+
+    /**
+     * Route a verified notification to the pipeline that owns the money effect.
+     *
+     * Settlement (money in) stays with SettlementService; refund / chargeback
+     * notifications are provider-initiated reversals we only record, and a
+     * partial-refund -> terminal transition restores the refunded amount first.
+     * Provider-side refunds initiated by operators never pass through here.
+     */
+    private function dispatchObservation(PaymentContext $context, NormalizedObservation $observation): GatewayResultToken
+    {
+        $event = strtolower(trim((string) ($observation->rawFields['transaction_status'] ?? '')));
+
+        if (in_array($event, ['refund', 'partial_refund'], true)) {
+            return app(SettlementReversalService::class)->processRefund($context, $observation);
+        }
+
+        if ($event === 'chargeback') {
+            return app(SettlementReversalService::class)->processChargeback($context, $observation);
+        }
+
+        if (in_array($event, ['deny', 'cancel', 'expire', 'failure'], true)) {
+            return app(SettlementReversalService::class)->processReversal($context, $observation);
+        }
+
+        return app(SettlementService::class)->processSettlement($context, $observation);
     }
 }
