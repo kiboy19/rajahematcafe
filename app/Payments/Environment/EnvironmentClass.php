@@ -162,6 +162,22 @@ final class EnvironmentClass
         return is_string($key) ? trim($key) : '';
     }
 
+    /** Batas byte payload webhook (`pos.midtrans.max_payload_bytes`). */
+    public static function maxPayloadBytes(): int
+    {
+        $value = self::config()['max_payload_bytes'] ?? null;
+
+        return is_int($value) ? $value : 65536;
+    }
+
+    /** Timeout pre-commit webhook dalam detik (`pos.midtrans.webhook_timeout_seconds`). */
+    public static function webhookTimeoutSeconds(): int
+    {
+        $value = self::config()['webhook_timeout_seconds'] ?? null;
+
+        return is_int($value) ? $value : 10;
+    }
+
     /**
      * Kesalahan konfigurasi `pos.midtrans.*` (tipe salah, di luar rentang, kunci wajib kosong).
      *
