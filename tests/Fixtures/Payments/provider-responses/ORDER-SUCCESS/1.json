@@ -1,0 +1,5 @@
+{
+  "__response": "success",
+  "token": "snap-tok-12345",
+  "redirect_url": "https://app.sandbox.midtrans.com/snap/v2/vtweb/snap-tok-12345"
+}

@@ -48,6 +48,7 @@ return new class extends Migration
             $table->integer('failure_count')->default(0);
             $table->integer('version')->default(0);
             $table->bigInteger('window_started_at_ms');
+            $table->bigInteger('opened_at_ms')->default(0);
             $table->integer('half_open_probes_in_flight')->default(0);
             $table->timestamps(3);
         });
