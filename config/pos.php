@@ -81,6 +81,8 @@ return [
         'server_key' => env('POS_MIDTRANS_SERVER_KEY'),
         'server_key_rotation' => array_values(array_filter(array_map('trim', explode(',', (string) env('POS_MIDTRANS_SERVER_KEY_ROTATION', ''))))),
         'payload_key' => env('POS_PAYLOAD_KEY'),
+        'connect_timeout_ms' => (int) env('POS_MIDTRANS_CONNECT_TIMEOUT_MS', 3000),
+        'read_timeout_ms' => (int) env('POS_MIDTRANS_READ_TIMEOUT_MS', 10000),
         'webhook_timeout_seconds' => (int) env('POS_MIDTRANS_WEBHOOK_TIMEOUT_SECONDS', 10),
         'max_payload_bytes' => (int) env('POS_MIDTRANS_MAX_PAYLOAD_BYTES', 65536),
         'settlement_retry_limit' => (int) env('POS_MIDTRANS_SETTLEMENT_RETRY_LIMIT', 3),
