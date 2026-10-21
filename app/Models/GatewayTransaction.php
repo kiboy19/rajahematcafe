@@ -11,6 +11,7 @@ class GatewayTransaction extends Model
         'provider', 'provider_reference', 'idempotency_key', 'type', 'status',
         'gross_amount', 'fee_amount', 'net_amount', 'payload', 'signature',
         'customer_id', 'order_id', 'wallet_transaction_id', 'settled_at',
+        'internal_type', 'internal_id', 'midtrans_order_id', 'payload_encrypted', 'payload_digest',
     ];
 
     protected function casts(): array

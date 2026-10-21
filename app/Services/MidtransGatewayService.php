@@ -16,6 +16,7 @@ use App\Payments\Environment\PaymentGatewayUnavailableException;
 use App\Models\GatewayTransaction;
 use App\Models\Order;
 use App\Models\Payment;
+use App\Models\WalletTopUp;
 use App\Support\Clock;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\DB;
@@ -133,6 +134,14 @@ class MidtransGatewayService
                 $snapToken = (string) $response->json('token');
                 $redirectUrl = (string) $response->json('redirect_url');
 
+                $topUp = WalletTopUp::query()->create([
+                    'customer_id' => $customer->id,
+                    'midtrans_order_id' => $orderId,
+                    'gross_amount' => $amount,
+                    'settled_amount' => 0,
+                    'status' => 'pending',
+                ]);
+
                 GatewayTransaction::query()->create([
                     'provider' => 'midtrans',
                     'provider_reference' => $orderId,
@@ -144,6 +153,9 @@ class MidtransGatewayService
                     'net_amount' => $amount,
                     'payload' => $response->json(),
                     'customer_id' => $customer->id,
+                    'internal_type' => 'wallet_top_up',
+                    'internal_id' => $topUp->id,
+                    'midtrans_order_id' => $orderId,
                 ]);
 
                 return [
@@ -176,6 +188,9 @@ class MidtransGatewayService
             'net_amount' => $amount,
             'payload' => ['mode' => 'mock'],
             'customer_id' => $customer->id,
+            'internal_type' => 'wallet_top_up',
+            'internal_id' => null,
+            'midtrans_order_id' => $orderId,
         ]);
 
         return [
@@ -331,6 +346,9 @@ class MidtransGatewayService
                     'payload' => $response->json(),
                     'customer_id' => $order->customer_id,
                     'order_id' => $order->id,
+                    'internal_type' => 'order',
+                    'internal_id' => $order->id,
+                    'midtrans_order_id' => $orderId,
                 ],
             );
 
@@ -361,6 +379,9 @@ class MidtransGatewayService
                 'payload' => ['mode' => 'mock'],
                 'customer_id' => $order->customer_id,
                 'order_id' => $order->id,
+                'internal_type' => 'order',
+                'internal_id' => $order->id,
+                'midtrans_order_id' => $orderId,
             ],
         );
 
@@ -460,6 +481,17 @@ class MidtransGatewayService
         return DB::transaction(function () use ($payload, $orderId, $transactionStatus, $payloadDigest, $providerEventKey, $idempotencyKey, $pipelineStartMs): GatewayNotificationResult {
             $fraudStatus = (string) ($payload['fraud_status'] ?? '');
             $grossAmount = $this->parseGrossAmount((string) ($payload['gross_amount'] ?? '0'));
+            $currency = (string) ($payload['currency'] ?? 'IDR');
+            if ($currency !== '' && strcasecmp($currency, 'IDR') !== 0) {
+                $this->auditRecorder->claim(
+                    $providerEventKey,
+                    GatewayResultToken::CurrencyMismatch->value,
+                    $payloadDigest,
+                    ['event_type' => 'webhook', 'event_source' => 'midtrans', 'currency' => $currency],
+                );
+
+                return new GatewayNotificationResult(null, GatewayResultToken::CurrencyMismatch);
+            }
 
             // N13.5: Pre-commit timeout check — sebelum commit, jika lewat batas,
             // lempar exception sehingga efek bisnis + claim ikut rollback.
@@ -524,9 +556,13 @@ class MidtransGatewayService
                 'fee_amount' => 0,
                 'net_amount' => $grossAmount,
                 'payload' => $payload,
+                'payload_digest' => $payloadDigest,
                 'signature' => (string) ($payload['signature_key'] ?? null),
                 'customer_id' => $customer?->id,
                 'order_id' => $order?->id,
+                'internal_type' => $isTopUp ? 'wallet_top_up' : 'order',
+                'internal_id' => $isTopUp ? $customer?->id : $order?->id,
+                'midtrans_order_id' => $orderId,
                 'settled_at' => $isSettlement ? now() : null,
             ]);
 
