@@ -16,3 +16,4 @@ Artisan::command('inspire', function () {
 Schedule::command('app:backup --keep=14')->dailyAt('23:30')->withoutOverlapping();
 Schedule::command('app:reconcile-wallet')->dailyAt('23:45')->withoutOverlapping();
 Schedule::command('app:schedule-health')->dailyAt('07:00')->withoutOverlapping();
+Schedule::job(FlushAuditOutbox::class)->everyMinute()->withoutOverlapping();

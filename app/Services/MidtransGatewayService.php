@@ -2,10 +2,12 @@
 
 namespace App\Services;
 
+use App\Enums\GatewayResultToken;
 use App\Enums\OrderStatus;
 use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
 use App\Enums\WalletTransactionType;
+use App\Exceptions\PreCommitTimeoutException;
 use App\Models\AuditLog;
 use App\Models\Customer;
 use App\Payments\Environment\FailClosedGuard;
@@ -14,6 +16,7 @@ use App\Payments\Environment\PaymentGatewayUnavailableException;
 use App\Models\GatewayTransaction;
 use App\Models\Order;
 use App\Models\Payment;
+use App\Support\Clock;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
@@ -29,6 +32,8 @@ class MidtransGatewayService
 {
     public function __construct(
         protected WalletService $wallet,
+        protected AuditRecorder $auditRecorder,
+        protected ?Clock $clock = null,
     ) {}
 
     private function guardPaymentCreation(): void
@@ -48,6 +53,18 @@ class MidtransGatewayService
     /**
      * URL basis API Snap Midtrans (sandbox vs production).
      */
+    public function clock(): Clock
+    {
+        return $this->clock ??= app(Clock::class);
+    }
+
+    public function setClock(Clock $clock): self
+    {
+        $this->clock = $clock;
+
+        return $this;
+    }
+
     public function snapBaseUrl(): string
     {
         return EnvironmentClass::isProduction()
@@ -411,7 +428,21 @@ class MidtransGatewayService
      *
      * @throws ValidationException
      */
-    public function handleNotification(array $payload): GatewayTransaction
+    public function handleNotification(array $payload): ?GatewayTransaction
+    {
+        return $this->processNotification($payload)->transaction;
+    }
+
+    /**
+     * Proses notifikasi webhook Midtrans secara atomik dan idempotent.
+     * Efek bisnis dan claim outbox commit bersama; hasilnya membawa token
+     * hasil untuk dipetakan controller ke status HTTP.
+     *
+     * @param  array<string, mixed>  $payload
+     *
+     * @throws ValidationException
+     */
+    public function processNotification(array $payload, ?int $pipelineStartMs = null): GatewayNotificationResult
     {
         if (! $this->verifySignature($payload)) {
             throw ValidationException::withMessages([
@@ -422,15 +453,35 @@ class MidtransGatewayService
         $orderId = (string) ($payload['order_id'] ?? '');
         $statusCode = (string) ($payload['status_code'] ?? '');
         $transactionStatus = (string) ($payload['transaction_status'] ?? '');
-        $fraudStatus = (string) ($payload['fraud_status'] ?? '');
-        $grossAmount = $this->parseGrossAmount((string) ($payload['gross_amount'] ?? '0'));
         $idempotencyKey = GatewayTransaction::idempotencyKey('midtrans', $orderId.':'.$transactionStatus.':'.$statusCode);
+        $providerEventKey = $orderId.':'.$transactionStatus.':'.$statusCode;
+        $payloadDigest = hash('sha256', (string) json_encode($payload, JSON_UNESCAPED_SLASHES));
 
-        return DB::transaction(function () use ($payload, $orderId, $transactionStatus, $fraudStatus, $grossAmount, $idempotencyKey): GatewayTransaction {
+        return DB::transaction(function () use ($payload, $orderId, $transactionStatus, $payloadDigest, $providerEventKey, $idempotencyKey, $pipelineStartMs): GatewayNotificationResult {
+            $fraudStatus = (string) ($payload['fraud_status'] ?? '');
+            $grossAmount = $this->parseGrossAmount((string) ($payload['gross_amount'] ?? '0'));
+
+            // N13.5: Pre-commit timeout check — sebelum commit, jika lewat batas,
+            // lempar exception sehingga efek bisnis + claim ikut rollback.
+            if ($pipelineStartMs !== null) {
+                $limitMs = (int) config('pos.midtrans.webhook_timeout_seconds', 5) * 1000;
+
+                if (($this->clock()?->nowMs() ?? 0) - $pipelineStartMs > $limitMs) {
+                    throw new PreCommitTimeoutException;
+                }
+            }
+
             // Cek replay idempotency
             $existing = GatewayTransaction::query()->where('idempotency_key', $idempotencyKey)->first();
             if ($existing) {
-                return $existing;
+                $this->auditRecorder->claim(
+                    $providerEventKey,
+                    GatewayResultToken::DuplicateIgnored->value,
+                    $payloadDigest,
+                    ['event_type' => 'webhook', 'event_source' => 'midtrans'],
+                );
+
+                return new GatewayNotificationResult($existing, GatewayResultToken::DuplicateIgnored);
             }
 
             $isSettlement = ($transactionStatus === 'settlement')
@@ -449,6 +500,18 @@ class MidtransGatewayService
             } else {
                 $order = Order::query()->where('number', $orderId)->first();
                 $customer = $order?->customer;
+            }
+
+            // Referensi tak dikenal: tidak ada efek uang, terminal (200).
+            if ($customer === null && $order === null) {
+                $this->auditRecorder->claim(
+                    $providerEventKey,
+                    GatewayResultToken::UnknownReference->value,
+                    $payloadDigest,
+                    ['event_type' => 'webhook', 'event_source' => 'midtrans', 'order_id' => $orderId],
+                );
+
+                return new GatewayNotificationResult(null, GatewayResultToken::UnknownReference);
             }
 
             $gatewayTrx = GatewayTransaction::query()->create([
@@ -509,7 +572,30 @@ class MidtransGatewayService
                 ]);
             }
 
-            return $gatewayTrx;
+            // Timeout dipastikan tepat sebelum transaksi commit; exception ini
+            // juga mengembalikan transaksi dan claim bisnis ke keadaan awal.
+            if ($pipelineStartMs !== null) {
+                $limitMs = (int) config('pos.midtrans.webhook_timeout_seconds', 5) * 1000;
+
+                if (($this->clock()?->nowMs() ?? 0) - $pipelineStartMs > $limitMs) {
+                    throw new PreCommitTimeoutException;
+                }
+            }
+
+            // Claim audit dalam transaksi yang sama dengan efek bisnis.
+            $this->auditRecorder->claim(
+                $providerEventKey,
+                GatewayResultToken::Processed->value,
+                $payloadDigest,
+                [
+                    'event_type' => 'webhook',
+                    'event_source' => 'midtrans',
+                    'order_id' => $orderId,
+                    'transaction_status' => $transactionStatus,
+                ],
+            );
+
+            return new GatewayNotificationResult($gatewayTrx, GatewayResultToken::Processed);
         });
     }
 }
