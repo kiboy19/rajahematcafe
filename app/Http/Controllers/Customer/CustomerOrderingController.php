@@ -2,25 +2,21 @@
 
 namespace App\Http\Controllers\Customer;
 
-use App\Enums\OrderChannel;
-use App\Enums\OrderStatus;
 use App\Enums\PaymentMethod;
-use App\Enums\PaymentStatus;
 use App\Http\Controllers\Controller;
 use App\Models\CafeTable;
 use App\Models\Category;
 use App\Models\Customer;
 use App\Models\MenuItem;
 use App\Models\Order;
-use App\Models\Payment;
+use App\Services\CustomerCheckoutService;
+use App\Services\MidtransGatewayService;
 use App\Services\MoneyCalculator;
-use App\Services\TransactionNumberGenerator;
-use App\Services\VoucherService;
-use App\Services\WalletService;
 use App\Support\Cart;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
@@ -50,7 +46,7 @@ class CustomerOrderingController extends Controller
      * Entry point scan QR: /m/{token}.
      * Simpan meja di session, lalu arahkan ke menu meja.
      */
-    public function scan(string $token): RedirectResponse
+    public function scan(string $token): RedirectResponse|JsonResponse
     {
         $table = CafeTable::findByQrToken($token);
 
@@ -60,19 +56,64 @@ class CustomerOrderingController extends Controller
 
         session(['customer.table_id' => $table->id]);
 
+        if (request()->expectsJson()) {
+            return response()->json([
+                'data' => ['table' => $table->label],
+                'message' => 'Meja terdeteksi. Silakan pilih menu.',
+            ]);
+        }
+
         return redirect()->route('customer.order.menu');
+    }
+
+    /**
+     * Pelanggan yang masuk langsung lewat website (tanpa memindai QR) memilih
+     * sendiri meja tempat ia duduk. Meja harus aktif agar tidak ada pesanan nyasar.
+     */
+    public function selectTable(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'table_id' => ['required', 'integer', 'exists:cafe_tables,id'],
+        ]);
+
+        $table = CafeTable::query()
+            ->where('is_active', true)
+            ->find($validated['table_id']);
+
+        if (! $table) {
+            throw ValidationException::withMessages([
+                'table_id' => 'Meja tersebut sedang tidak aktif. Pilih meja lain atau hubungi kasir.',
+            ]);
+        }
+
+        session(['customer.table_id' => $table->id]);
+
+        return response()->json([
+            'data' => ['table' => $table->label, 'table_id' => $table->id],
+            'message' => 'Meja '.$table->label.' dipilih. Silakan pilih menu.',
+        ]);
     }
 
     /**
      * Menu pemesanan meja pelanggan.
      */
-    public function menu(Request $request): View|RedirectResponse
+    public function menu(Request $request): JsonResponse|RedirectResponse|View
     {
         $table = $this->currentTable();
 
+        if (! $request->expectsJson()) {
+            return view('spa');
+        }
+
         if (! $table) {
-            return redirect()->route('customer.home')
-                ->withErrors(['table' => 'Pindai QR di meja Anda untuk mulai memesan.']);
+            return response()->json(['data' => [
+                'customer' => $request->user('customer'),
+                'table' => null,
+                'tables' => CafeTable::query()->where('is_active', true)->orderBy('label')->get(),
+                'categories' => [],
+                'lines' => [],
+                'bill' => ['subtotal' => 0, 'tax' => 0, 'service' => 0, 'grand_total' => 0],
+            ]]);
         }
 
         $cart = $this->cart();
@@ -82,17 +123,19 @@ class CustomerOrderingController extends Controller
             ->orderBy('sort_order')
             ->get();
 
-        return view('customer.order.menu', [
+        return response()->json(['data' => [
             'customer' => $request->user('customer'),
+            'table' => ['id' => $table->id, 'label' => $table->label],
             'tableLabel' => $table->label,
+            'tables' => CafeTable::query()->where('is_active', true)->orderBy('label')->get(),
             'categories' => $categories,
             'cart' => $cart,
             'lines' => $cart->lines(),
             'bill' => $cart->bill(),
-        ]);
+        ]]);
     }
 
-    public function addToCart(Request $request): RedirectResponse
+    public function addToCart(Request $request): RedirectResponse|JsonResponse
     {
         $validated = $request->validate([
             'menu_item_id' => ['required', 'integer', 'exists:menu_items,id'],
@@ -103,15 +146,26 @@ class CustomerOrderingController extends Controller
         $item = MenuItem::query()->findOrFail($validated['menu_item_id']);
 
         if (! $item->is_available) {
+            if ($request->expectsJson()) {
+                return response()->json(['message' => 'Menu '.$item->name.' sedang habis.'], 422);
+            }
+
             return back()->withErrors(['cart' => 'Menu '.$item->name.' sedang habis.']);
         }
 
         $this->cart()->add((int) $validated['menu_item_id'], (int) ($validated['quantity'] ?? 1), $validated['note'] ?? null);
 
+        if ($request->expectsJson()) {
+            return response()->json([
+                'data' => $this->cart()->lines(),
+                'message' => $item->name.' ditambahkan ke pesanan.',
+            ]);
+        }
+
         return back()->with('success', $item->name.' ditambahkan ke pesanan.');
     }
 
-    public function updateCart(Request $request): RedirectResponse
+    public function updateCart(Request $request): JsonResponse
     {
         $validated = $request->validate([
             'menu_item_id' => ['required', 'integer'],
@@ -120,27 +174,22 @@ class CustomerOrderingController extends Controller
 
         $this->cart()->setQuantity((int) $validated['menu_item_id'], (int) $validated['quantity']);
 
-        return back();
+        return response()->json(['data' => $this->cart()->lines()]);
     }
 
-    public function clearCart(): RedirectResponse
+    public function clearCart(): JsonResponse
     {
         $this->cart()->clear();
 
-        return back()->with('success', 'Keranjang pesanan dikosongkan.');
+        return response()->json(['data' => [], 'message' => 'Keranjang pesanan dikosongkan.']);
     }
 
     /**
-     * Checkout pelanggan: pesanan langsung masuk antrean dapur.
-     * Pelanggan dapat memilih bayar langsung pakai saldo (jika cukup) atau bayar nanti di kasir.
+     * Buat pesanan pelanggan. Pesanan disimpan sebagai `menunggu_pembayaran`
+     * dan belum masuk antrean dapur sampai pelanggan melunasi di halaman bayar.
      */
-    public function checkout(
-        Request $request,
-        MoneyCalculator $calculator,
-        TransactionNumberGenerator $numbers,
-        WalletService $wallet,
-        VoucherService $vouchers,
-    ): RedirectResponse {
+    public function checkout(Request $request, CustomerCheckoutService $checkout): JsonResponse|RedirectResponse
+    {
         $cart = $this->cart();
 
         if ($cart->isEmpty()) {
@@ -150,112 +199,96 @@ class CustomerOrderingController extends Controller
         $table = $this->currentTable();
 
         if (! $table) {
-            throw ValidationException::withMessages(['cart' => 'Pindai ulang QR meja Anda.']);
+            throw ValidationException::withMessages(['cart' => 'Pilih meja Anda terlebih dahulu.']);
         }
 
         /** @var Customer $customer */
         $customer = $request->user('customer');
         $validated = $request->validate([
-            'pay_with_wallet' => ['nullable', 'boolean'],
             'voucher_code' => ['nullable', 'string', 'max:30'],
             'note' => ['nullable', 'string', 'max:255'],
         ]);
 
-        $lines = $cart->lines();
+        $order = $checkout->place($customer, $table, $cart, $cart->lines(), $validated);
 
-        foreach ($lines as $line) {
-            if (! $line['menu_item']->is_available) {
-                throw ValidationException::withMessages(['cart' => $line['menu_item']->name.' sedang tidak tersedia.']);
-            }
-        }
+        $message = 'Pesanan '.$order->number.' dibuat. Selesaikan pembayaran untuk mengirim ke dapur.';
 
-        $subtotal = array_sum(array_map(fn (array $line): int => $line['line_total'], $lines));
-        $voucherCode = trim((string) ($validated['voucher_code'] ?? ''));
-
-        // Diskon voucher dihitung dari master voucher, bukan dari input pelanggan.
-        $voucher = $voucherCode === '' ? null : $vouchers->resolve($voucherCode, $subtotal, $customer);
-
-        $bill = $calculator->calculateBill(
-            array_map(fn (array $line): array => [
-                'price' => $line['menu_item']->price,
-                'quantity' => $line['quantity'],
-            ], $lines),
-            discount: $voucher?->discountFor($subtotal) ?? 0,
-            taxPercent: (int) config('pos.tax_percent'),
-            servicePercent: (int) config('pos.service_percent'),
-        );
-
-        $payWithWallet = ! empty($validated['pay_with_wallet']);
-
-        if ($payWithWallet && (int) $customer->balance < $bill['grand_total']) {
-            throw ValidationException::withMessages([
-                'pay_with_wallet' => 'Saldo Anda (Rp'.number_format((int) $customer->balance, 0, ',', '.').') kurang untuk membayar pesanan ini (Rp'.number_format($bill['grand_total'], 0, ',', '.').'). Anda dapat memesan dulu dan membayar di kasir.',
-            ]);
-        }
-
-        $order = DB::transaction(function () use ($customer, $table, $bill, $lines, $validated, $numbers, $payWithWallet, $wallet, $voucher, $vouchers): Order {
-            $order = Order::query()->create([
-                'number' => $numbers->nextOrderNumber(),
-                'channel' => OrderChannel::QrTable,
-                'status' => OrderStatus::Baru,
-                'customer_id' => $customer->id,
-                'voucher_id' => $voucher?->id,
-                'table_label' => $table->label,
-                'subtotal' => $bill['subtotal'],
-                'discount' => $bill['discount'],
-                'tax' => $bill['tax'],
-                'service' => $bill['service'],
-                'total' => $bill['grand_total'],
-                'tax_percent' => config('pos.tax_percent'),
-                'service_percent' => config('pos.service_percent'),
-                'note' => $validated['note'] ?? null,
-                'placed_at' => now(),
-            ]);
-
-            foreach ($lines as $line) {
-                $order->items()->create([
-                    'menu_item_id' => $line['menu_item']->id,
-                    'name' => $line['menu_item']->name,
-                    'unit_price' => $line['menu_item']->price,
-                    'quantity' => $line['quantity'],
-                    'line_total' => $line['line_total'],
-                    'note' => $line['note'],
-                ]);
-            }
-
-            if ($payWithWallet) {
-                $payment = Payment::query()->create([
+        if ($request->expectsJson()) {
+            return response()->json([
+                'data' => [
                     'order_id' => $order->id,
-                    'method' => PaymentMethod::Wallet,
-                    'status' => PaymentStatus::Paid,
-                    'amount' => $bill['grand_total'],
-                    'tendered' => null,
-                    'change' => 0,
-                    'reference' => 'QR-'.$order->number,
-                    'paid_at' => now(),
-                ]);
-
-                $wallet->debit($customer, $bill['grand_total'], $payment);
-                $order->update(['paid_at' => now()]);
-            }
-
-            if ($voucher) {
-                $vouchers->redeem($voucher, $order->id, $bill['subtotal'], $customer, $bill['discount']);
-            }
-
-            return $order;
-        });
-
-        $cart->clear();
-
-        $message = 'Pesanan '.$order->number.' berhasil dikirim ke dapur!';
-
-        if ($order->isFullyPaid()) {
-            $message .= ' Dibayar lunas dengan Saldo.';
-        } else {
-            $message .= ' Silakan lakukan pembayaran ke kasir saat selesai.';
+                    'order_number' => $order->number,
+                    'total' => (int) $order->total,
+                    'paid' => false,
+                ],
+                'message' => $message,
+            ], 201);
         }
 
-        return redirect()->route('customer.home')->with('success', $message);
+        return redirect()->route('customer.order.pay', $order)->with('success', $message);
+    }
+
+    /**
+     * Lunasi pesanan: Saldo (langsung) atau QRIS/Virtual Account (via gateway).
+     */
+    public function pay(Request $request, Order $order, CustomerCheckoutService $checkout): JsonResponse
+    {
+        /** @var Customer $customer */
+        $customer = $request->user('customer');
+
+        if ($order->customer_id !== $customer->id) {
+            abort(404);
+        }
+
+        $validated = $request->validate([
+            'payment_method' => ['required', 'string', Rule::in([
+                PaymentMethod::Wallet->value,
+                PaymentMethod::Qris->value,
+                PaymentMethod::VirtualAccount->value,
+            ])],
+        ]);
+
+        $result = $checkout->pay($order, $customer, PaymentMethod::from($validated['payment_method']));
+
+        $message = $result->isPaid()
+            ? 'Pembayaran pesanan '.$order->number.' berhasil. Pesanan dikirim ke dapur.'
+            : 'Pembayaran '.$result->paymentMethodLabel.' dibuat. Selesaikan pembayaran Anda.';
+
+        return response()->json([
+            'data' => [
+                'order_id' => $result->order->id,
+                'order_number' => $result->order->number,
+                'paid' => $result->isPaid(),
+                'payment' => $result->payment,
+            ],
+            'message' => $message,
+        ]);
+    }
+
+    /**
+     * Simulasi pelunasan pesanan (hanya local/testing) saat Midtrans belum
+     * dikonfigurasi. Di produksi, status lunas HANYA berasal dari webhook.
+     */
+    public function simulatePayment(Request $request, Order $order, MidtransGatewayService $gateway): JsonResponse
+    {
+        abort_unless(app()->environment(['local', 'testing']), 404);
+
+        /** @var Customer $customer */
+        $customer = $request->user('customer');
+
+        if ($order->customer_id !== $customer->id) {
+            abort(404);
+        }
+
+        $gateway->simulateSettlement($customer, $order->number);
+
+        return response()->json([
+            'data' => [
+                'order_id' => $order->id,
+                'order_number' => $order->number,
+                'paid' => $order->fresh()->isFullyPaid(),
+            ],
+            'message' => 'Pembayaran simulasi berhasil. Pesanan dikirim ke dapur.',
+        ]);
     }
 }

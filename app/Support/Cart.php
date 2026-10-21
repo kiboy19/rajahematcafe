@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Models\MenuItem;
+use App\Services\BillingSettingsService;
 use App\Services\MoneyCalculator;
 use Illuminate\Contracts\Session\Session;
 
@@ -22,6 +23,7 @@ class Cart
         private readonly Session $session,
         private readonly MoneyCalculator $calculator,
         private readonly string $key = self::SESSION_KEY,
+        private readonly ?BillingSettingsService $billingSettings = null,
     ) {}
 
     /**
@@ -131,11 +133,16 @@ class Cart
             $this->lines(),
         );
 
+        $settings = $this->billingSettings ?? app(BillingSettingsService::class);
+        $rates = $settings->rates();
+
         return $this->calculator->calculateBill(
             $items,
             discount: $discount,
             taxPercent: (int) config('pos.tax_percent'),
             servicePercent: (int) config('pos.service_percent'),
+            taxBps: $rates['taxBps'],
+            serviceBps: $rates['serviceBps'],
         );
     }
 

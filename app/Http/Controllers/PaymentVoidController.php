@@ -10,6 +10,7 @@ use App\Models\Order;
 use App\Models\Payment;
 use App\Models\WalletTransaction;
 use App\Services\WalletService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -21,7 +22,7 @@ class PaymentVoidController extends Controller
      * Batalkan pembayaran (salah input / refund). Bukti tidak dihapus:
      * baris tetap ada dengan status void dan alasan tercatat.
      */
-    public function store(Request $request, Order $order, Payment $payment, WalletService $wallet): RedirectResponse
+    public function store(Request $request, Order $order, Payment $payment, WalletService $wallet): RedirectResponse|JsonResponse
     {
         if ($payment->order_id !== $order->id) {
             abort(404);
@@ -87,6 +88,13 @@ class PaymentVoidController extends Controller
                 'status' => PaymentStatus::Void->value,
             ], reason: $validated['reason'], actor: $request->user());
         });
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'data' => $order->fresh()->load(['items', 'payments.cashier', 'cashier', 'customer']),
+                'message' => 'Pembayaran Rp'.number_format($payment->amount, 0, ',', '.').' dibatalkan. Sisa tagihan dihitung ulang.',
+            ]);
+        }
 
         return redirect()->route('orders.show', $order)
             ->with('success', 'Pembayaran Rp'.number_format($payment->amount, 0, ',', '.').' dibatalkan. Sisa tagihan dihitung ulang.');

@@ -111,6 +111,14 @@ return [
             'expire' => 60,
             'throttle' => 60,
         ],
+
+        // Reset sandi pelanggan memakai tabel terpisah agar token staf & pelanggan tidak pernah tertukar.
+        'customers' => [
+            'provider' => 'customers',
+            'table' => 'customer_password_reset_tokens',
+            'expire' => 60,
+            'throttle' => 60,
+        ],
     ],
 
     /*

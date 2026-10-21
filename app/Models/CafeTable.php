@@ -12,6 +12,14 @@ class CafeTable extends Model
 
     protected $fillable = ['label', 'seats', 'is_active', 'qr_token'];
 
+    /**
+     * Token baru membatalkan QR lama seketika (token lama tidak dikenali lagi).
+     */
+    public function rotateQrToken(): void
+    {
+        $this->forceFill(['qr_token' => Str::random(32)])->save();
+    }
+
     protected function casts(): array
     {
         return ['is_active' => 'boolean'];

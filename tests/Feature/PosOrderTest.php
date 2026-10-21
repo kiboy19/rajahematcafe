@@ -34,10 +34,20 @@ class PosOrderTest extends TestCase
     public function test_kasir_dapat_melihat_halaman_pos(): void
     {
         $this->withoutVite()->actingAs($this->kasir)
+            ->getJson('/pos')
+            ->assertOk()
+            ->assertJsonPath('data.menuItems.0.name', 'Kopi Susu Aren')
+            ->assertJsonPath('data.lines', []);
+    }
+
+    public function test_halaman_pos_merender_cangkang_spa(): void
+    {
+        $this->withoutVite()->actingAs($this->kasir)
             ->get('/pos')
             ->assertOk()
-            ->assertSee('Kopi Susu Aren')
-            ->assertSee('Tagihan Pesanan');
+            ->assertSee('id="app"', false)
+            ->assertSee('data-props=', false)
+            ->assertDontSee('Tagihan Pesanan');
     }
 
     public function test_kasir_dapat_menambah_item_ke_keranjang(): void
@@ -53,9 +63,10 @@ class PosOrderTest extends TestCase
             ->assertSessionHas('pos.cart');
 
         $this->actingAs($this->kasir)
-            ->get('/pos')
-            ->assertSee('Kopi Susu Aren')
-            ->assertSee('2');
+            ->getJson('/pos')
+            ->assertOk()
+            ->assertJsonPath('data.lines.0.menu_item.name', 'Kopi Susu Aren')
+            ->assertJsonPath('data.lines.0.quantity', 2);
     }
 
     public function test_checkout_membuat_order_dan_order_item_snapshot(): void
@@ -130,11 +141,8 @@ class PosOrderTest extends TestCase
             ]);
 
         $this->actingAs($this->kasir)
-            ->delete('/pos/keranjang')
-            ->assertRedirect('/pos');
-
-        $this->actingAs($this->kasir)
-            ->get('/pos')
-            ->assertSee('Pilih menu di sebelah kiri');
+            ->deleteJson('/pos/keranjang')
+            ->assertOk()
+            ->assertJsonPath('data.lines', []);
     }
 }

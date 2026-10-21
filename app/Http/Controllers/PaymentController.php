@@ -12,6 +12,7 @@ use App\Models\Order;
 use App\Models\Payment;
 use App\Services\MoneyCalculator;
 use App\Services\WalletService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -23,10 +24,14 @@ class PaymentController extends Controller
         Order $order,
         MoneyCalculator $calculator,
         WalletService $wallet,
-    ): RedirectResponse {
+    ): RedirectResponse|JsonResponse {
         $session = CashierSession::openFor($request->user());
 
         if (! $session) {
+            if ($request->expectsJson()) {
+                return response()->json(['message' => 'Buka sesi kasir terlebih dahulu sebelum menerima pembayaran.'], 422);
+            }
+
             return redirect()->route('cashier.session')->withErrors([
                 'session' => 'Buka sesi kasir terlebih dahulu sebelum menerima pembayaran.',
             ]);
@@ -113,6 +118,16 @@ class PaymentController extends Controller
 
         if ($payment->change > 0) {
             $message .= ' Kembalian: Rp'.number_format($payment->change, 0, ',', '.').'.';
+        }
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'data' => [
+                    'payment' => $payment,
+                    'order' => $order->fresh()->load(['items', 'payments.cashier', 'cashier', 'customer']),
+                ],
+                'message' => $message,
+            ], 201);
         }
 
         return redirect()->route('orders.show', $order)->with('success', $message);

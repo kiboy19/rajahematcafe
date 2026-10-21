@@ -8,6 +8,7 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 class KdsWorkflowTest extends TestCase
@@ -16,7 +17,13 @@ class KdsWorkflowTest extends TestCase
 
     private function orderWithStatus(OrderStatus $status): Order
     {
-        $order = Order::factory()->create(['status' => $status]);
+        $order = Order::factory()->create([
+            'status' => $status,
+            // Pesanan kasir (punya cashier_id) atau pesanan pelanggan yang sudah
+            // lunas (paid_at) boleh tampil di KDS.
+            'cashier_id' => User::factory()->role(UserRole::Kasir)->create()->id,
+            'paid_at' => $status === OrderStatus::Baru ? now() : null,
+        ]);
         OrderItem::factory()->for($order)->create(['name' => 'Kopi Susu Aren', 'quantity' => 2]);
 
         return $order;
@@ -28,9 +35,9 @@ class KdsWorkflowTest extends TestCase
         $selesai = $this->orderWithStatus(OrderStatus::Selesai);
         $dapur = User::factory()->role(UserRole::Dapur)->create();
 
-        $this->actingAs($dapur)->get('/kds')->assertOk()
-            ->assertSee($baru->number)
-            ->assertDontSee($selesai->number);
+        $this->actingAs($dapur)->getJson('/kds')->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.number', $baru->number);
     }
 
     public function test_dapur_dapat_memajukan_status_sesuai_alur(): void
@@ -100,5 +107,28 @@ class KdsWorkflowTest extends TestCase
     public function test_tamu_diarahkan_ke_login(): void
     {
         $this->get('/kds')->assertRedirect('/login');
+    }
+
+    public function test_polling_kds_tidak_menambah_query_per_pesanan(): void
+    {
+        // KDS menyegarkan tiap 20 detik di beberapa perangkat; jumlah query saat render harus
+        // tetap walau antrean bertambah (bukti relasi tidak bocor menjadi N+1).
+        $dapur = User::factory()->role(UserRole::Dapur)->create();
+        $this->orderWithStatus(OrderStatus::Baru);
+
+        DB::enableQueryLog();
+        DB::flushQueryLog();
+        $this->actingAs($dapur)->getJson('/api/kds')->assertOk();
+        $oneOrder = count(DB::getQueryLog());
+
+        $this->orderWithStatus(OrderStatus::Diproses);
+        $this->orderWithStatus(OrderStatus::Siap);
+
+        DB::flushQueryLog();
+        $this->actingAs($dapur)->getJson('/api/kds')->assertOk();
+        $threeOrders = count(DB::getQueryLog());
+        DB::disableQueryLog();
+
+        $this->assertSame($oneOrder, $threeOrders);
     }
 }

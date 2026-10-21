@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\OrderChannel;
 use App\Enums\OrderStatus;
+use App\Enums\PaymentStatus;
 use Database\Factories\OrderFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -65,6 +66,12 @@ class Order extends Model
 
     public function paidTotal(): int
     {
+        // KDS memuat relasi payments sekaligus; hitung dari memori agar polling 20 detik
+        // tidak menambah satu query per kartu pesanan.
+        if ($this->relationLoaded('payments')) {
+            return (int) $this->payments->where('status', PaymentStatus::Paid)->sum('amount');
+        }
+
         return (int) $this->payments()->where('status', 'paid')->sum('amount');
     }
 

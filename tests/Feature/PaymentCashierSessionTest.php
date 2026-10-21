@@ -84,10 +84,10 @@ class PaymentCashierSessionTest extends TestCase
         $this->assertTrue($order->fresh()->isFullyPaid());
 
         $this->actingAs($this->kasir)
-            ->get("/pesanan/{$order->id}")
+            ->getJson("/pesanan/{$order->id}")
             ->assertOk()
-            ->assertSee('Pesanan sudah lunas')
-            ->assertSee('kembali');
+            ->assertJsonPath('data.order.payments.0.amount', 46000)
+            ->assertJsonPath('data.order.payments.0.change', 4000);
     }
 
     public function test_pembayaran_ditolak_tanpa_sesi_kasir_terbuka(): void
@@ -268,12 +268,20 @@ class PaymentCashierSessionTest extends TestCase
         $this->actingAs($this->kasir)
             ->post("/pesanan/{$order->id}/bayar", ['method' => 'cash', 'amount' => 46000, 'tendered' => 50000]);
 
+        // Halaman struk kini dirender React dari cangkang SPA.
         $this->actingAs($this->kasir)
             ->get("/pesanan/{$order->id}/struk")
             ->assertOk()
-            ->assertSee('RAJAHEMAT CAFE')
-            ->assertSee($order->number)
-            ->assertSee('Kembali');
+            ->assertSee('id="app"', false)
+            ->assertSee('data-props=', false);
+
+        // Data struk untuk canvas cetak diambil dari endpoint JSON yang sama.
+        $this->actingAs($this->kasir)
+            ->getJson("/pesanan/{$order->id}/struk")
+            ->assertOk()
+            ->assertJsonPath('data.number', $order->number)
+            ->assertJsonPath('data.payments.0.amount', 46000)
+            ->assertJsonPath('data.payments.0.change', 4000);
     }
 
     public function test_manager_dapat_melihat_laporan_harian_dan_kasir_dilarang(): void
@@ -289,12 +297,10 @@ class PaymentCashierSessionTest extends TestCase
         ]);
 
         $this->actingAs($manager)
-            ->get('/laporan/harian')
+            ->getJson('/laporan/harian')
             ->assertOk()
-            ->assertSee('Laporan Harian')
-            ->assertSee('Penjualan bruto')
-            ->assertSee('Tunai')
-            ->assertSee('46.000');
+            ->assertJsonPath('data.grossSales', 46000)
+            ->assertJsonPath('data.paymentsByMethod.0.total', 46000);
 
         $this->actingAs($this->kasir)
             ->get('/laporan/harian')

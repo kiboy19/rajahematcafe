@@ -2,16 +2,22 @@
 
 namespace App\Models;
 
+use App\Notifications\ResetCustomerPassword;
+use App\Notifications\VerifyCustomerEmail;
 use Database\Factories\CustomerFactory;
+use Illuminate\Auth\MustVerifyEmail as MustVerifyEmailTrait;
+use Illuminate\Auth\Passwords\CanResetPassword as CanResetPasswordTrait;
+use Illuminate\Contracts\Auth\CanResetPassword as CanResetPasswordContract;
+use Illuminate\Contracts\Auth\MustVerifyEmail as MustVerifyEmailContract;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-class Customer extends Authenticatable
+class Customer extends Authenticatable implements CanResetPasswordContract, MustVerifyEmailContract
 {
     /** @use HasFactory<CustomerFactory> */
-    use HasFactory, Notifiable;
+    use CanResetPasswordTrait, HasFactory, MustVerifyEmailTrait, Notifiable;
 
     protected $fillable = [
         'name', 'email', 'phone', 'password', 'is_active', 'balance',
@@ -39,6 +45,16 @@ class Customer extends Authenticatable
     public function walletTransactions(): HasMany
     {
         return $this->hasMany(WalletTransaction::class);
+    }
+
+    public function sendEmailVerificationNotification(): void
+    {
+        $this->notify(new VerifyCustomerEmail);
+    }
+
+    public function sendPasswordResetNotification(#[\SensitiveParameter] $token): void
+    {
+        $this->notify(new ResetCustomerPassword($token));
     }
 
     /**

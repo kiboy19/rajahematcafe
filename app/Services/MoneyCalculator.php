@@ -25,9 +25,15 @@ class MoneyCalculator
         int $discount = 0,
         int $taxPercent = 10,
         int $servicePercent = 5,
+        ?int $taxBps = null,
+        ?int $serviceBps = null,
     ): array {
         if ($discount < 0 || $taxPercent < 0 || $servicePercent < 0) {
             throw new InvalidArgumentException('Diskon, pajak, dan biaya layanan tidak boleh negatif.');
+        }
+
+        if (($taxBps !== null && $taxBps < 0) || ($serviceBps !== null && $serviceBps < 0)) {
+            throw new InvalidArgumentException('Basis poin pajak dan biaya layanan tidak boleh negatif.');
         }
 
         $subtotal = 0;
@@ -42,9 +48,16 @@ class MoneyCalculator
         $discount = min($discount, $subtotal);
         $taxableBase = $subtotal - $discount;
 
-        // Pembulatan ke integer Rupiah terdekat
-        $tax = (int) round(($taxableBase * $taxPercent) / 100);
-        $service = (int) round(($taxableBase * $servicePercent) / 100);
+        // Hitung pajak & service charge: prioritaskan bps (basis poin 1% = 100) jika ada,
+        // fallback ke percent. Pembulatan ke integer Rupiah terdekat.
+        $tax = $taxBps !== null
+            ? (int) round(($taxableBase * $taxBps) / 10000)
+            : (int) round(($taxableBase * $taxPercent) / 100);
+
+        $service = $serviceBps !== null
+            ? (int) round(($taxableBase * $serviceBps) / 10000)
+            : (int) round(($taxableBase * $servicePercent) / 100);
+
         $grandTotal = $taxableBase + $tax + $service;
 
         return [

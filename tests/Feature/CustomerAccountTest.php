@@ -22,8 +22,10 @@ class CustomerAccountTest extends TestCase
         config()->set('pos.customer_registration_open', true);
     }
 
-    public function test_pendaftaran_mandiri_tertutup_sampai_teks_legal_disetujui(): void
+    public function test_pendaftaran_mandiri_dapat_ditutup_lewat_konfigurasi(): void
     {
+        config()->set('pos.customer_registration_open', false);
+
         $this->get('/daftar')->assertNotFound();
 
         $this->post('/daftar', [
@@ -175,11 +177,11 @@ class CustomerAccountTest extends TestCase
         $foreign = Order::factory()->create(['customer_id' => $other->id, 'total' => 55000]);
 
         $this->actingAs($customer, 'customer')
-            ->get('/akun')
+            ->getJson('/akun')
             ->assertOk()
-            ->assertSee('Dewi Lestari')
-            ->assertSee($own->number)
-            ->assertDontSee($foreign->number);
+            ->assertJsonPath('data.customer.name', 'Dewi Lestari')
+            ->assertJsonPath('data.orders.0.number', $own->number)
+            ->assertJsonMissingExact(['number' => $foreign->number]);
     }
 
     public function test_akun_menampilkan_saldo_dan_mutasi_milik_sendiri(): void
@@ -194,10 +196,11 @@ class CustomerAccountTest extends TestCase
         $wallet->credit($other, WalletTransactionType::TopUp, 99000, $session, $cashier);
 
         $this->actingAs($customer, 'customer')
-            ->get('/akun')
+            ->getJson('/akun')
             ->assertOk()
-            ->assertSee('25.000')
-            ->assertDontSee('99.000');
+            ->assertJsonPath('data.customer.balance', 25000)
+            ->assertJsonPath('data.transactions.0.amount', 25000)
+            ->assertJsonMissingExact(['amount' => 99000]);
     }
 
     public function test_sesi_pelanggan_tidak_memberi_akses_route_staf(): void

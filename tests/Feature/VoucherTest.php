@@ -169,12 +169,17 @@ class VoucherTest extends TestCase
         $this->get('/m/'.$this->meja->qr_token);
         $this->actingAs($customer, 'customer')->post(route('customer.order.cart.add'), ['menu_item_id' => $this->kopi->id, 'quantity' => 2]);
         $this->actingAs($customer, 'customer')
-            ->post(route('customer.order.checkout'), ['voucher_code' => 'HEMAT10K', 'pay_with_wallet' => 1])
-            ->assertRedirect(route('customer.home'));
+            ->post(route('customer.order.checkout'), ['voucher_code' => 'HEMAT10K'])
+            ->assertRedirect(route('customer.order.pay', 1));
 
         $order = Order::query()->firstOrFail();
         $this->assertSame(34500, $order->total);
         $this->assertSame(10000, $order->discount);
+
+        $this->actingAs($customer, 'customer')
+            ->postJson(route('customer.order.pay.store', $order), ['payment_method' => 'wallet'])
+            ->assertOk();
+
         $this->assertSame(15500, (int) $customer->fresh()->balance);
         $this->assertSame(15500, app(WalletService::class)->ledgerBalance($customer));
         $this->assertSame(1, VoucherUsage::query()->count());
@@ -189,7 +194,9 @@ class VoucherTest extends TestCase
         $order = Order::query()->firstOrFail();
         $manager = User::factory()->role(UserRole::Manager)->create();
 
-        $this->actingAs($manager)->patch(route('kds.status', $order), ['status' => 'dibatalkan'])->assertRedirect();
+        $this->actingAs($manager)
+            ->patch(route('kds.status', $order), ['status' => 'dibatalkan', 'reason' => 'Pelanggan membatalkan'])
+            ->assertRedirect();
 
         $this->assertSame(0, $voucher->fresh()->used_count);
         $this->assertDatabaseCount('voucher_usages', 0);
@@ -205,7 +212,9 @@ class VoucherTest extends TestCase
         $owner = User::factory()->role(UserRole::Owner)->create();
 
         $this->actingAs($owner)->withoutVite()
-            ->get('/voucher')->assertOk()->assertSee('Buat Voucher');
+            ->getJson('/voucher')
+            ->assertOk()
+            ->assertJsonStructure(['data']);
 
         $this->actingAs($owner)->post('/voucher', [
             'code' => 'hemat20k',

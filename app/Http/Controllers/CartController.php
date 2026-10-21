@@ -7,10 +7,12 @@ use App\Enums\OrderStatus;
 use App\Http\Requests\CheckoutRequest;
 use App\Http\Requests\StoreCartItemRequest;
 use App\Models\Order;
+use App\Services\BillingSettingsService;
 use App\Services\MoneyCalculator;
 use App\Services\TransactionNumberGenerator;
 use App\Services\VoucherService;
 use App\Support\Cart;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -19,16 +21,20 @@ use Illuminate\Validation\ValidationException;
 
 class CartController extends Controller
 {
-    public function store(StoreCartItemRequest $request, Cart $cart): RedirectResponse
+    public function store(StoreCartItemRequest $request, Cart $cart): RedirectResponse|JsonResponse
     {
         $validated = $request->validated();
         $cart->add((int) $validated['menu_item_id'], (int) $validated['quantity'], $validated['note'] ?? null);
         $this->persistContext($request, $validated);
 
+        if ($request->expectsJson()) {
+            return response()->json(['data' => $this->cartPayload($cart), 'message' => 'Item ditambahkan ke keranjang.']);
+        }
+
         return redirect()->route('pos.index')->with('success', 'Item ditambahkan ke keranjang.');
     }
 
-    public function update(Request $request, Cart $cart): RedirectResponse
+    public function update(Request $request, Cart $cart): RedirectResponse|JsonResponse
     {
         $validated = $request->validate([
             'menu_item_id' => ['required', 'integer', 'exists:menu_items,id'],
@@ -46,12 +52,20 @@ class CartController extends Controller
 
         $this->persistContext($request, $validated);
 
+        if ($request->expectsJson()) {
+            return response()->json(['data' => $this->cartPayload($cart)]);
+        }
+
         return redirect()->route('pos.index');
     }
 
-    public function destroy(Cart $cart): RedirectResponse
+    public function destroy(Request $request, Cart $cart): RedirectResponse|JsonResponse
     {
         $cart->clear();
+
+        if ($request->expectsJson()) {
+            return response()->json(['data' => $this->cartPayload($cart), 'message' => 'Keranjang dikosongkan.']);
+        }
 
         return redirect()->route('pos.index')->with('success', 'Keranjang dikosongkan.');
     }
@@ -62,7 +76,7 @@ class CartController extends Controller
         MoneyCalculator $calculator,
         TransactionNumberGenerator $numbers,
         VoucherService $vouchers,
-    ): RedirectResponse {
+    ): RedirectResponse|JsonResponse {
         if ($cart->isEmpty()) {
             throw ValidationException::withMessages(['cart' => 'Keranjang masih kosong.']);
         }
@@ -91,6 +105,8 @@ class CartController extends Controller
         // Diskon voucher diambil dari master voucher, bukan dari input kasir.
         $voucher = $voucherCode === '' ? null : $vouchers->resolve($voucherCode, $subtotal);
 
+        $rates = app(BillingSettingsService::class)->rates();
+
         $bill = $calculator->calculateBill(
             array_map(fn (array $line): array => [
                 'price' => $line['menu_item']->price,
@@ -99,6 +115,8 @@ class CartController extends Controller
             discount: $voucher?->discountFor($subtotal) ?? $manualDiscount,
             taxPercent: (int) config('pos.tax_percent'),
             servicePercent: (int) config('pos.service_percent'),
+            taxBps: $rates['taxBps'],
+            serviceBps: $rates['serviceBps'],
         );
 
         $role = $request->user()->role;
@@ -147,7 +165,31 @@ class CartController extends Controller
         $cart->clear();
         $request->session()->forget(['pos.table_label', 'pos.channel']);
 
+        if ($request->expectsJson()) {
+            return response()->json([
+                'data' => [
+                    'order_id' => $order->id,
+                    'order_number' => $order->number,
+                ],
+                'message' => 'Pesanan dibuat dan masuk ke antrean dapur.',
+            ], 201);
+        }
+
         return redirect()->route('orders.show', $order)->with('success', 'Pesanan dibuat dan masuk ke antrean dapur.');
+    }
+
+    /**
+     * Snapshot keranjang + tagihan agar UI kasir bisa langsung memperbarui tampilan
+     * tanpa memuat ulang halaman.
+     *
+     * @return array<string, mixed>
+     */
+    private function cartPayload(Cart $cart): array
+    {
+        return [
+            'lines' => $cart->lines(),
+            'bill' => $cart->bill(),
+        ];
     }
 
     /** @param array<string, mixed> $validated */

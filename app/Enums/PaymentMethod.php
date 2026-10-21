@@ -8,6 +8,7 @@ enum PaymentMethod: string
     case Qris = 'qris';
     case Wallet = 'wallet';
     case Edc = 'edc';
+    case VirtualAccount = 'va';
 
     public function label(): string
     {
@@ -16,11 +17,20 @@ enum PaymentMethod: string
             self::Qris => 'QRIS',
             self::Wallet => 'Saldo',
             self::Edc => 'Kartu (EDC)',
+            self::VirtualAccount => 'Virtual Account',
         };
     }
 
     /**
-     * Hanya tunai yang menambah uang fisik di laci; saldo/QRIS/EDC tidak.
+     * Apakah metode ini dibayar online lewat payment gateway (bukan di kasir)?
+     */
+    public function isOnline(): bool
+    {
+        return $this === self::Qris || $this === self::VirtualAccount;
+    }
+
+    /**
+     * Hanya tunai yang menambah uang fisik di laci; saldo/QRIS/EDC/VA tidak.
      */
     public function affectsCashDrawer(): bool
     {

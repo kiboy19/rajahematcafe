@@ -41,7 +41,7 @@ class AuditLog extends Model
         ?string $ipAddress = null,
     ): self {
         return self::query()->create([
-            'actor_id' => $actor?->id ?? auth()->id(),
+            'actor_id' => $actor?->id ?? (auth()->user() instanceof User ? auth()->id() : null),
             'action' => $action,
             'subject_type' => $subject?->getMorphClass(),
             'subject_id' => $subject?->getKey(),

@@ -10,13 +10,13 @@ use App\Models\CashierSession;
 use App\Models\Order;
 use App\Models\Payment;
 use App\Models\WalletTransaction;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
-use Illuminate\View\View;
 
 class ReportController extends Controller
 {
-    public function daily(Request $request): View
+    public function daily(Request $request): JsonResponse
     {
         $date = $request->date('tanggal') ?? Carbon::today();
 
@@ -47,18 +47,20 @@ class ReportController extends Controller
             ->orderBy('opened_at')
             ->get();
 
-        return view('reports.daily', [
-            'date' => $date,
-            'orders' => $orders,
-            'orderCount' => $orders->count(),
-            'grossSales' => (int) $orders->sum('total'),
-            'discountTotal' => (int) $orders->sum('discount'),
-            'taxTotal' => (int) $orders->sum('tax'),
-            'serviceTotal' => (int) $orders->sum('service'),
-            'paymentsByMethod' => $paymentsByMethod,
-            'cashPaid' => $cashPaid,
-            'cashTopups' => $cashTopups,
-            'sessions' => $sessions,
+        return response()->json([
+            'data' => [
+                'date' => $date->toDateString(),
+                'orders' => $orders,
+                'orderCount' => $orders->count(),
+                'grossSales' => (int) $orders->sum('total'),
+                'discountTotal' => (int) $orders->sum('discount'),
+                'taxTotal' => (int) $orders->sum('tax'),
+                'serviceTotal' => (int) $orders->sum('service'),
+                'paymentsByMethod' => $paymentsByMethod,
+                'cashPaid' => $cashPaid,
+                'cashTopups' => $cashTopups,
+                'sessions' => $sessions,
+            ],
         ]);
     }
 }

@@ -6,12 +6,12 @@ use App\Models\CafeTable;
 use App\Models\Category;
 use App\Models\MenuItem;
 use App\Support\Cart;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\View\View;
 
 class PosController extends Controller
 {
-    public function index(Request $request, Cart $cart): View
+    public function index(Request $request, Cart $cart): JsonResponse
     {
         $selectedCategoryId = $request->integer('kategori');
         $search = $request->string('q')->trim()->toString();
@@ -37,16 +37,18 @@ class PosController extends Controller
         $lines = $cart->lines();
         $bill = $cart->bill();
 
-        return view('pos.index', [
-            'categories' => $categories,
-            'menuItems' => $menuItems,
-            'tables' => $tables,
-            'selectedCategoryId' => $selectedCategoryId,
-            'search' => $search,
-            'lines' => $lines,
-            'bill' => $bill,
-            'selectedTable' => (string) $request->session()->get('pos.table_label', '01'),
-            'selectedChannel' => (string) $request->session()->get('pos.channel', 'dine_in'),
+        return response()->json([
+            'data' => [
+                'categories' => $categories,
+                'menuItems' => $menuItems,
+                'tables' => $tables,
+                'selectedCategoryId' => $selectedCategoryId,
+                'search' => $search,
+                'lines' => $lines,
+                'bill' => $bill,
+                'selectedTable' => (string) $request->session()->get('pos.table_label', '01'),
+                'selectedChannel' => (string) $request->session()->get('pos.channel', 'dine_in'),
+            ],
         ]);
     }
 }

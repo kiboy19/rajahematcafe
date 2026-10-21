@@ -6,29 +6,33 @@ use App\Models\AuditLog;
 use App\Models\CashierSession;
 use App\Models\User;
 use App\Services\CashierSessionService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\View\View;
 
 class CashierSessionController extends Controller
 {
-    public function show(Request $request): View
+    public function show(Request $request): JsonResponse
     {
         $user = $request->user();
         $session = CashierSession::openFor($user);
 
-        return view('cashier.session', [
+        return response()->json(['data' => [
             'session' => $session,
             'cashSales' => $session?->cashSalesTotal() ?? 0,
             'cashTopups' => $session?->cashTopupsTotal() ?? 0,
             'paymentCount' => $session?->payments()->where('status', 'paid')->count() ?? 0,
-        ]);
+        ]]);
     }
 
-    public function open(Request $request): RedirectResponse
+    public function open(Request $request): RedirectResponse|JsonResponse
     {
         if (CashierSession::openFor($request->user())) {
+            if ($request->expectsJson()) {
+                return response()->json(['message' => 'Sesi kasir Anda masih terbuka. Tutup dulu sebelum membuka sesi baru.'], 422);
+            }
+
             return back()->withErrors(['opening_float' => 'Sesi kasir Anda masih terbuka. Tutup dulu sebelum membuka sesi baru.']);
         }
 
@@ -53,15 +57,26 @@ class CashierSessionController extends Controller
             return $session;
         });
 
+        if ($request->expectsJson()) {
+            return response()->json([
+                'data' => $session,
+                'message' => 'Sesi kasir dibuka dengan modal awal Rp'.number_format($session->opening_float, 0, ',', '.').'.',
+            ], 201);
+        }
+
         return redirect()->route('pos.index')
             ->with('success', 'Sesi kasir dibuka dengan modal awal Rp'.number_format($session->opening_float, 0, ',', '.').'.');
     }
 
-    public function close(Request $request, CashierSessionService $service): RedirectResponse
+    public function close(Request $request, CashierSessionService $service): RedirectResponse|JsonResponse
     {
         $session = CashierSession::openFor($request->user());
 
         if (! $session) {
+            if ($request->expectsJson()) {
+                return response()->json(['message' => 'Tidak ada sesi kasir yang terbuka.'], 422);
+            }
+
             return back()->withErrors(['counted_cash' => 'Tidak ada sesi kasir yang terbuka.']);
         }
 
@@ -78,6 +93,10 @@ class CashierSessionController extends Controller
         );
 
         if ((int) $validated['counted_cash'] !== $expectedCash && blank($validated['closing_note'] ?? null)) {
+            if ($request->expectsJson()) {
+                return response()->json(['message' => 'Catatan wajib diisi jika terdapat selisih kas.'], 422);
+            }
+
             return back()->withErrors(['closing_note' => 'Catatan wajib diisi jika terdapat selisih kas.'])->withInput();
         }
 
@@ -85,10 +104,18 @@ class CashierSessionController extends Controller
 
         $variance = (int) $session->variance;
         $message = 'Sesi kasir ditutup. Uang laci tercatat';
-
-        return redirect()->route('cashier.session')->with('success', $variance === 0
+        $finalMessage = $variance === 0
             ? $message.'.'
-            : $message.', selisih Rp'.number_format(abs($variance), 0, ',', '.').($variance < 0 ? ' (kurang).' : ' (lebih).'));
+            : $message.', selisih Rp'.number_format(abs($variance), 0, ',', '.').($variance < 0 ? ' (kurang).' : ' (lebih).');
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'data' => $session->fresh(),
+                'message' => $finalMessage,
+            ]);
+        }
+
+        return redirect()->route('cashier.session')->with('success', $finalMessage);
     }
 
     public function openSessionFor(?User $user): ?CashierSession

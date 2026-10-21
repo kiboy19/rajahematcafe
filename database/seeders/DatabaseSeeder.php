@@ -7,6 +7,7 @@ use App\Enums\VoucherType;
 use App\Models\CafeTable;
 use App\Models\Category;
 use App\Models\Customer;
+use App\Models\Ingredient;
 use App\Models\MenuItem;
 use App\Models\User;
 use App\Models\Voucher;
@@ -91,6 +92,20 @@ class DatabaseSeeder extends Seeder
             }
         }
 
+        // Bahan baku contoh untuk demo inventory.
+        $ingredients = [
+            ['name' => 'Biji Kopi Arabika', 'unit' => 'kg', 'stock_qty_milli' => 12500, 'min_stock_milli' => 3000],
+            ['name' => 'Susu UHT', 'unit' => 'liter', 'stock_qty_milli' => 20000, 'min_stock_milli' => 5000],
+            ['name' => 'Gula Aren', 'unit' => 'kg', 'stock_qty_milli' => 8000, 'min_stock_milli' => 2000],
+        ];
+
+        foreach ($ingredients as $ingredient) {
+            Ingredient::firstOrCreate(
+                ['name' => $ingredient['name']],
+                [...$ingredient, 'is_active' => true],
+            );
+        }
+
         // Meja 01 - 08
         foreach (range(1, 8) as $n) {
             $label = str_pad((string) $n, 2, '0', STR_PAD_LEFT);
@@ -110,5 +125,8 @@ class DatabaseSeeder extends Seeder
                 'is_active' => true,
             ],
         );
+
+        // Artikel blog awal agar landing page dan blog tidak kosong.
+        $this->call(PostSeeder::class);
     }
 }
