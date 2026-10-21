@@ -19,7 +19,7 @@ class Order extends Model
 
     protected $fillable = [
         'number', 'channel', 'status', 'cashier_id', 'customer_id', 'voucher_id', 'table_label',
-        'subtotal', 'discount', 'tax', 'service', 'total',
+        'subtotal', 'discount', 'tax', 'service', 'total', 'midtrans_order_id', 'snap_token',
         'tax_percent', 'service_percent', 'note', 'placed_at', 'paid_at', 'closed_at',
     ];
 
@@ -31,6 +31,8 @@ class Order extends Model
             'placed_at' => 'datetime',
             'paid_at' => 'datetime',
             'closed_at' => 'datetime',
+            'midtrans_order_id' => 'string',
+            'snap_token' => 'string',
         ];
     }
 

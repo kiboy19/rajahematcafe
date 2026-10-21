@@ -7,6 +7,17 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class GatewayTransaction extends Model
 {
+    public const TYPE_PAYMENT = 'payment';
+    public const TYPE_TOPUP = 'topup';
+    public const TYPE_REFUND = 'refund';
+
+    public const INTERNAL_TYPE_ORDER = 'order';
+    public const INTERNAL_TYPE_WALLET_TOP_UP = 'wallet_top_up';
+
+    public const STATUS_PENDING = 'pending';
+    public const STATUS_SETTLEMENT = 'settlement';
+    public const STATUS_FAILED = 'failed';
+
     protected $fillable = [
         'provider', 'provider_reference', 'idempotency_key', 'type', 'status',
         'gross_amount', 'fee_amount', 'net_amount', 'payload', 'signature',
