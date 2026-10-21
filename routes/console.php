@@ -1,5 +1,6 @@
 <?php
 
+use App\Jobs\FlushAuditOutbox;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -17,3 +18,5 @@ Schedule::command('app:backup --keep=14')->dailyAt('23:30')->withoutOverlapping(
 Schedule::command('app:reconcile-wallet')->dailyAt('23:45')->withoutOverlapping();
 Schedule::command('app:schedule-health')->dailyAt('07:00')->withoutOverlapping();
 Schedule::job(FlushAuditOutbox::class)->everyMinute()->withoutOverlapping();
+Schedule::command('midtrans:buffer-replay')->everyMinute()->withoutOverlapping();
+Schedule::command('midtrans:buffer-expire')->dailyAt('03:00')->withoutOverlapping();
