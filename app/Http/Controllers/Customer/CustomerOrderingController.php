@@ -40,7 +40,7 @@ class CustomerOrderingController extends Controller
             return null;
         }
 
-        return CafeTable::query()->where('is_active', true)->find($tableId);
+        return CafeTable::query()->where('is_active', true)->where('id', $tableId)->first();
     }
 
     /**

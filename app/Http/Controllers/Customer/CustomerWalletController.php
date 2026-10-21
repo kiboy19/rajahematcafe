@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Customer;
 
 use App\Enums\WalletTransactionType;
 use App\Http\Controllers\Controller;
+use App\Models\Customer;
 use App\Payments\Environment\EnvironmentClass;
 use App\Payments\Environment\FailClosedGuard;
 use App\Services\MidtransGatewayService;
@@ -47,7 +48,9 @@ class CustomerWalletController extends Controller
             'amount' => ['required', 'integer', 'min:'.config('pos.wallet_min_topup'), 'max:100000000'],
         ]);
 
+        /** @var Customer $customer */
         $customer = $request->user('customer');
+        abort_unless($customer instanceof Customer, 401);
         $checkout = $gateway->createCustomerTopUp($customer, (int) $validated['amount']);
 
         return response()->json([
@@ -63,10 +66,10 @@ class CustomerWalletController extends Controller
         abort_unless(FailClosedGuard::allowsMockRoutes(), 404);
 
         $validated = $request->validate(['order_id' => ['required', 'string', 'max:64']]);
-        $transaction = $gateway->simulateSettlement(
-            $request->user('customer'),
-            $validated['order_id'],
-        );
+        /** @var Customer $customer */
+        $customer = $request->user('customer');
+        abort_unless($customer instanceof Customer, 401);
+        $transaction = $gateway->simulateSettlement($customer, $validated['order_id']);
 
         return response()->json([
             'data' => ['balance' => $request->user('customer')->fresh()->balance, 'transaction' => $transaction],

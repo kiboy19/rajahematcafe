@@ -221,7 +221,7 @@ interface CustomerOrderData {
 export function CustomerPaymentPage({ user }: { user: CustomerUser }) {
     const { id } = useParams<{ id: string }>();
     const { data, loading, error } = useResource<CustomerOrderData>(`/api/akun/pesanan/${id}`);
-    const { flashSuccess, flashError } = useFlash();
+    const { message, flashSuccess, flashError } = useFlash();
     const navigate = useNavigate();
     const [method, setMethod] = useState<'wallet' | 'qris' | 'va'>('wallet');
     const [submitting, setSubmitting] = useState(false);
