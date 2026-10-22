@@ -1,6 +1,6 @@
 # Design System — Rajahemat Cafe
 
-**Status:** Disetujui (Opsi A) — belum diimplementasikan.  
+**Status:** Disetujui (Opsi A) — sudah diimplementasikan di `resources/css/app.css` (`@theme`) dan seluruh komponen SPA.  
 **Arah visual:** Artisan Coffeehouse & Warm Editorial  
 **Pendekatan landing:** Brand-first (bukan hard-selling)  
 **Stack:** React 19 + TypeScript + Tailwind CSS v4 + Radix UI + Lucide React
