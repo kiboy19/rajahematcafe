@@ -9,6 +9,7 @@ use App\Payments\Notification\NotificationParser;
 use App\Payments\Notification\NotificationValidationException;
 use App\Payments\Notification\PayloadCipher;
 use App\Payments\Notification\SignatureVerifier;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 class NotificationParserTest extends TestCase
@@ -95,7 +96,7 @@ class NotificationParserTest extends TestCase
     public function test_repeated_parameter_rejected(): void
     {
         $fields = $this->signedFields();
-        $body = http_build_query($fields) . '&order_id=ORD-002';
+        $body = http_build_query($fields).'&order_id=ORD-002';
         $this->assertRejected(400, 'repeated_parameter', $body, 'application/x-www-form-urlencoded');
     }
 
@@ -168,9 +169,7 @@ class NotificationParserTest extends TestCase
         $this->assertRejected(413, 'payload_too_large', $this->j($this->signedFields()));
     }
 
-    /**
-     * @dataProvider amountProvider
-     */
+    #[DataProvider('amountProvider')]
     public function test_amount_normalization(string $raw, ?string $currency, ?string $expected, ?string $errorCode = null): void
     {
         $normalizer = new AmountNormalizer;
@@ -182,6 +181,7 @@ class NotificationParserTest extends TestCase
             } catch (AmountNormalizationException $exception) {
                 $this->assertSame($errorCode, $exception->getErrorCode());
             }
+
             return;
         }
 

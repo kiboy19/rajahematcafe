@@ -22,6 +22,7 @@ import { BlogListPage } from './pages/BlogListPage';
 import { BlogPostPage } from './pages/BlogPostPage';
 import { LandingPage, PublicMenuPage, AboutPage, ContactPage } from './pages/PublicPages';
 import { StaffLoginPage, CustomerLoginPage, RegisterPage, ForgotPasswordPage, ResetPasswordPage, VerifyEmailPage } from './pages/AuthPages';
+import { setMidtransConfig } from './midtrans';
 import type { SpaBootData } from './session';
 
 function StaffApp({ boot }: { boot: SpaBootData }) {
@@ -41,7 +42,7 @@ function StaffApp({ boot }: { boot: SpaBootData }) {
         <Routes>
             <Route path="/dashboard" element={<DashboardPage user={user} />} />
             <Route path="/pos" element={<PosPage />} />
-            <Route path="/sesi-kasir" element={<CashierSessionPage />} />
+            <Route path="/sesi-kasir" element={<CashierSessionPage user={user} />} />
             <Route path="/pesanan" element={<OrdersPage />} />
             <Route path="/pesanan/:id" element={<OrderShowPage user={user} />} />
             <Route path="/pesanan/:id/struk" element={<ReceiptPage />} />
@@ -124,6 +125,8 @@ function PublicApp() {
 }
 
 export function App({ boot }: { boot: SpaBootData }) {
+    setMidtransConfig(boot.midtransClientKey, boot.isMidtransProduction);
+
     if (boot.user) {
         return <BrowserRouter><StaffApp boot={boot} /></BrowserRouter>;
     }

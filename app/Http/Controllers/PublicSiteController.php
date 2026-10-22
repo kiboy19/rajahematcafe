@@ -40,7 +40,6 @@ class PublicSiteController extends Controller
                     ->with('category:id,name')
                     ->orderBy('sort_order')
                     ->orderBy('name')
-                    ->limit(8)
                     ->get()
                     ->map(fn (MenuItem $item): array => $this->menuCard($item))
                     ->all(),

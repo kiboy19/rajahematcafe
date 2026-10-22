@@ -286,7 +286,8 @@ class SeoService
         string $type = 'website',
     ): array {
         $brandName = $settings->brand_name ?: 'Rajahemat Cafe';
-        $image = $settings->logoUrl() ? $this->absolute($settings->logoUrl()) : null;
+        // Kartu berbagi selalu pakai banner 1200x630, bukan logo persegi.
+        $image = $this->absolute('/images/og-default.svg');
         $description = Str::limit(trim(strip_tags($description)), 160);
 
         return [

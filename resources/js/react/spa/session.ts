@@ -31,6 +31,10 @@ export function isStaffUser(user: SessionUser | null | undefined): user is Staff
 }
 
 export interface SpaBootData {
+    /** Client key Midtrans untuk popup Snap; null jika gateway belum dikonfigurasi. */
+    midtransClientKey?: string | null;
+    /** Kebenarannya dipakai memilih URL script snap.js sandbox vs production. */
+    isMidtransProduction?: boolean;
     user?: StaffUser | null;
     customer?: CustomerUser | null;
     branding?: {

@@ -21,7 +21,7 @@ interface Voucher {
 }
 
 export function VouchersPage() {
-    const { data, loading, error, reload } = useResource<{ data: Voucher[] }>('/api/voucher');
+    const { data, loading, error, reload } = useResource<Voucher[]>('/api/voucher');
     const { message, flashSuccess, flashError } = useFlash();
 
     const [showForm, setShowForm] = useState(false);
@@ -43,7 +43,7 @@ export function VouchersPage() {
     if (loading) return <Loading label="Memuat voucher..." />;
     if (error) return <ErrorBox message={error} />;
 
-    const vouchers = data?.data ?? [];
+    const vouchers = data ?? [];
 
     const handleSubmit = async (event: React.FormEvent) => {
         event.preventDefault();
@@ -80,7 +80,7 @@ export function VouchersPage() {
     };
 
     return (
-        <div className="max-w-5xl flex flex-col gap-5">
+        <div className="max-w-7xl w-full flex flex-col gap-5">
             <PageHeader title="Voucher" actions={<Button variant="outline" onClick={() => setShowForm(true)}>Buat Voucher</Button>} />
 
             {showForm && (

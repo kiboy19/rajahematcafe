@@ -1,10 +1,7 @@
 import * as React from 'react';
 import { apiRequest, firstError, type ValidationErrors } from '@/react/lib/api';
-import { Button } from '@/react/components/ui/button';
-import { Input } from '@/react/components/ui/input';
-import { FormField } from '@/react/components/ui/label';
-import { Switch } from '@/react/components/ui/switch';
 import { Save, Loader2, ReceiptText } from 'lucide-react';
+import { Button, Input, FormField, Switch } from '../../spa/ui-primitives';
 
 export interface BillingSettings {
     tax_name: string;

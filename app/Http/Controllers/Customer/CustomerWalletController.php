@@ -6,7 +6,6 @@ use App\Enums\WalletTransactionType;
 use App\Http\Controllers\Controller;
 use App\Models\Customer;
 use App\Payments\Environment\EnvironmentClass;
-use App\Payments\Environment\FailClosedGuard;
 use App\Services\MidtransGatewayService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -55,25 +54,7 @@ class CustomerWalletController extends Controller
 
         return response()->json([
             'data' => $checkout,
-            'message' => $checkout['mode'] === 'mock'
-                ? 'Top-up dibuat dalam mode simulasi karena Midtrans belum dikonfigurasi.'
-                : 'Silakan selesaikan pembayaran melalui Midtrans.',
+            'message' => 'Silakan selesaikan pembayaran melalui Midtrans.',
         ], 201);
-    }
-
-    public function simulateTopUp(Request $request, MidtransGatewayService $gateway): JsonResponse
-    {
-        abort_unless(FailClosedGuard::allowsMockRoutes(), 404);
-
-        $validated = $request->validate(['order_id' => ['required', 'string', 'max:64']]);
-        /** @var Customer $customer */
-        $customer = $request->user('customer');
-        abort_unless($customer instanceof Customer, 401);
-        $transaction = $gateway->simulateSettlement($customer, $validated['order_id']);
-
-        return response()->json([
-            'data' => ['balance' => $request->user('customer')->fresh()->balance, 'transaction' => $transaction],
-            'message' => 'Top-up simulasi berhasil masuk ke saldo.',
-        ]);
     }
 }

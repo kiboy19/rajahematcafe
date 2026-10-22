@@ -4,6 +4,7 @@ import { dateTime, money, statusBadgeClass, statusLabel } from '../api';
 import { mutate, useFlash, useResource } from '../hooks';
 import { Badge, Button, EmptyState, ErrorBox, Field, inputClass, Loading, Money, PageHeader, Panel } from '../ui';
 import type { CustomerUser } from '../session';
+import { payWithSnap } from '../midtrans';
 
 interface MenuItem {
     id: number;
@@ -250,7 +251,7 @@ export function CustomerPaymentPage({ user }: { user: CustomerUser }) {
         const result = await mutate<{
             order_id: number;
             paid: boolean;
-            payment?: { redirect_url?: string; snap_token?: string; mode?: 'midtrans' | 'mock' };
+            payment?: { redirect_url?: string; snap_token?: string };
         }>(
             'POST',
             `/api/meja/pesanan/${order.id}/bayar`,
@@ -271,32 +272,14 @@ export function CustomerPaymentPage({ user }: { user: CustomerUser }) {
 
         const payment = result.data?.payment;
 
-        // Jika mode mock (lokal tanpa server key Midtrans), sediakan simulasi
-        if (payment?.mode === 'mock') {
-            const confirmSimulate = window.confirm(
-                'Pembayaran online dibuat dalam mode simulasi lokal. Klik OK untuk mensimulasikan pelunasan (settlement).'
-            );
-            if (confirmSimulate) {
-                setSubmitting(true);
-                const sim = await mutate<{ paid: boolean }>('POST', `/api/meja/pesanan/${order.id}/bayar-simulasi`);
-                setSubmitting(false);
-                if (sim.ok) {
-                    flashSuccess('Pembayaran lunas! Pesanan masuk ke antrean dapur.');
-                    navigate(`/akun/pesanan/${order.id}`);
-                    return;
-                }
-                flashError(sim.message);
-            }
-        }
-
         if (payment?.redirect_url) {
             window.location.href = payment.redirect_url;
-        } else if (payment?.snap_token && (window as any).snap) {
-            (window as any).snap.pay(payment.snap_token, {
+        } else if (payment?.snap_token) {
+            payWithSnap(payment.snap_token, {
                 onSuccess: () => navigate(`/akun/pesanan/${order.id}`),
                 onPending: () => navigate(`/akun/pesanan/${order.id}`),
                 onError: () => flashError('Pembayaran gagal. Silakan coba lagi.'),
-            });
+            }).catch((error: Error) => flashError(error.message));
         } else {
             flashSuccess('Pembayaran dibuat. Silakan selesaikan pembayaran.');
             navigate(`/akun/pesanan/${order.id}`);
@@ -411,10 +394,19 @@ export function CustomerOrderShowPage() {
     const paid = order.payments.filter((p) => p.status === 'paid').reduce((sum, p) => sum + p.amount, 0);
 
     return (
-        <div className="max-w-xl mx-auto flex flex-col gap-4">
-            <Link to="/akun" className="text-xs font-semibold text-primary hover:underline">← Kembali ke akun</Link>
+        <div className="max-w-xl mx-auto flex flex-col gap-4 print:p-0 print:max-w-none">
+            <div className="flex items-center justify-between print:hidden">
+                <Link to="/akun" className="text-xs font-semibold text-primary hover:underline">← Kembali ke akun</Link>
+                <button
+                    type="button"
+                    onClick={() => window.print()}
+                    className="text-xs font-semibold text-ink-2 hover:text-ink underline"
+                >
+                    Cetak struk
+                </button>
+            </div>
 
-            <Panel className="p-5">
+            <Panel className="p-5 print:shadow-none print:border-none">
                 <div className="flex items-start justify-between gap-3 border-b border-line pb-4">
                     <div>
                         <p className="text-[10px] uppercase tracking-wider text-ink-2">Nomor pesanan</p>
@@ -456,7 +448,7 @@ export function CustomerOrderShowPage() {
                     </div>
                 </div>
 
-                <div className="mt-4 rounded-input bg-info-bg text-info p-3 text-xs">
+                <div className="mt-4 rounded-input bg-info-bg text-info p-3 text-xs" role="status" aria-live="polite">
                     {order.status === 'selesai'
                         ? 'Pesanan selesai. Terima kasih!'
                         : order.status === 'dibatalkan'
@@ -465,6 +457,44 @@ export function CustomerOrderShowPage() {
                         ? 'Menunggu pelunasan. Pesanan akan otomatis dikirim ke dapur segera setelah pembayaran selesai.'
                         : 'Pesanan sedang diproses oleh dapur. Halaman akan diperbarui otomatis.'}
                 </div>
+
+                {/* Timeline status pesanan. */}
+                <ol className="mt-5 flex flex-col gap-0 text-xs" aria-label="Riwayat status pesanan">
+                    {[
+                        { key: 'menunggu_pembayaran', label: 'Pesanan dibuat' },
+                        { key: 'diproses', label: 'Diproses dapur' },
+                        { key: 'siap', label: 'Siap disajikan' },
+                        { key: 'selesai', label: 'Selesai' },
+                    ].map((step, index, list) => {
+                        const order_: string[] = list.map((entry) => entry.key);
+                        const currentIndex = order_.indexOf(order.status);
+                        const stepIndex = order_.indexOf(step.key);
+                        const done = order.status !== 'dibatalkan' && stepIndex <= currentIndex;
+                        const isCurrent = order.status === step.key;
+
+                        return (
+                            <li key={step.key} className="flex gap-3">
+                                <div className="flex flex-col items-center">
+                                    <span
+                                        className={`w-4 h-4 rounded-full border flex-shrink-0 ${
+                                            done ? 'bg-primary border-primary' : 'bg-surface border-line-strong'
+                                        }`}
+                                        aria-hidden="true"
+                                    />
+                                    {index !== list.length - 1 && (
+                                        <span className={`w-0.5 flex-1 min-h-6 ${done ? 'bg-primary' : 'bg-line'}`} aria-hidden="true" />
+                                    )}
+                                </div>
+                                <div className="pb-4">
+                                    <p className={`font-semibold ${isCurrent ? 'text-primary' : 'text-ink-2'}`}>
+                                        {step.label}
+                                        {isCurrent ? ' (saat ini)' : ''}
+                                    </p>
+                                </div>
+                            </li>
+                        );
+                    })}
+                </ol>
 
                 <div className="mt-3 text-xs text-ink-2">Terbayar: <Money value={paid} /></div>
             </Panel>

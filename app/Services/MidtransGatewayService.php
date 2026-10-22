@@ -99,108 +99,86 @@ class MidtransGatewayService
         $orderId = 'TOPUP-'.$customer->id.'-'.time().'-'.bin2hex(random_bytes(3));
         $idempotencyKey = GatewayTransaction::idempotencyKey('midtrans', $orderId.':pending:create');
 
-        // Jika Midtrans aktif dan server_key sudah diisi, hubungi API Snap Midtrans.
-        if ($enabled && $serverKey !== '') {
-            $payload = [
-                'transaction_details' => [
-                    'order_id' => $orderId,
-                    'gross_amount' => $amount,
-                ],
-                'customer_details' => [
-                    'first_name' => $customer->name,
-                    'email' => $customer->email,
-                    'phone' => $customer->phone,
-                ],
-                'item_details' => [
-                    [
-                        'id' => 'TOPUP-SALDO',
-                        'price' => $amount,
-                        'quantity' => 1,
-                        'name' => 'Top-up Saldo Rajahemat Cafe',
-                    ],
-                ],
-            ];
-
-            try {
-                $response = Http::withBasicAuth($serverKey, '')
-                    ->timeout(10)
-                    ->acceptJson()
-                    ->post($this->snapBaseUrl(), $payload);
-
-                if (! $response->successful()) {
-                    throw ValidationException::withMessages([
-                        'amount' => 'Gagal menghubungi payment gateway Midtrans: '.($response->json('error_messages.0') ?? 'Kode HTTP '.$response->status()),
-                    ]);
-                }
-
-                $snapToken = (string) $response->json('token');
-                $redirectUrl = (string) $response->json('redirect_url');
-
-                $topUp = WalletTopUp::query()->create([
-                    'customer_id' => $customer->id,
-                    'midtrans_order_id' => $orderId,
-                    'gross_amount' => $amount,
-                    'settled_amount' => 0,
-                    'status' => 'pending',
-                ]);
-
-                GatewayTransaction::query()->create([
-                    'provider' => 'midtrans',
-                    'provider_reference' => $orderId,
-                    'idempotency_key' => $idempotencyKey,
-                    'type' => 'topup',
-                    'status' => 'pending',
-                    'gross_amount' => $amount,
-                    'fee_amount' => 0,
-                    'net_amount' => $amount,
-                    'payload' => $response->json(),
-                    'customer_id' => $customer->id,
-                    'internal_type' => 'wallet_top_up',
-                    'internal_id' => $topUp->id,
-                    'midtrans_order_id' => $orderId,
-                ]);
-
-                return [
-                    'snap_token' => $snapToken,
-                    'redirect_url' => $redirectUrl,
-                    'order_id' => $orderId,
-                    'mode' => 'midtrans',
-                ];
-            } catch (ConnectionException) {
-                throw ValidationException::withMessages([
-                    'amount' => 'Tidak dapat terhubung ke server Midtrans. Periksa koneksi internet Anda.',
-                ]);
-            }
-        }
-
-        // Mode simulasi hanya untuk tier local/testing yang lolos gate environment;
-        // di staging/production/resolved-fail-closed tidak pernah membuat transaksi palsu.
-        if (! FailClosedGuard::allowsMockRoutes()) {
+        // Tidak ada mode simulasi: gateway belum aktif/terkonfigurasi => fail-closed (503).
+        if (! $enabled || $serverKey === '') {
             throw new PaymentGatewayUnavailableException;
         }
 
-        GatewayTransaction::query()->create([
-            'provider' => 'midtrans',
-            'provider_reference' => $orderId,
-            'idempotency_key' => $idempotencyKey,
-            'type' => 'topup',
-            'status' => 'pending',
-            'gross_amount' => $amount,
-            'fee_amount' => 0,
-            'net_amount' => $amount,
-            'payload' => ['mode' => 'mock'],
-            'customer_id' => $customer->id,
-            'internal_type' => 'wallet_top_up',
-            'internal_id' => null,
-            'midtrans_order_id' => $orderId,
-        ]);
-
-        return [
-            'snap_token' => null,
-            'redirect_url' => null,
-            'order_id' => $orderId,
-            'mode' => 'mock',
+        $payload = [
+            'transaction_details' => [
+                'order_id' => $orderId,
+                'gross_amount' => $amount,
+            ],
+            'customer_details' => [
+                'first_name' => $customer->name,
+                'email' => $customer->email,
+                'phone' => $customer->phone,
+            ],
+            'item_details' => [
+                [
+                    'id' => 'TOPUP-SALDO',
+                    'price' => $amount,
+                    'quantity' => 1,
+                    'name' => 'Top-up Saldo Rajahemat Cafe',
+                ],
+            ],
+            'callbacks' => [
+                'finish' => url('/akun?topup=finish'),
+                'unfinish' => url('/akun/saldo'),
+                'error' => url('/akun/saldo?error=1'),
+            ],
         ];
+
+        try {
+            $response = Http::withBasicAuth($serverKey, '')
+                ->timeout(10)
+                ->acceptJson()
+                ->post($this->snapBaseUrl(), $payload);
+
+            if (! $response->successful()) {
+                throw ValidationException::withMessages([
+                    'amount' => 'Gagal menghubungi payment gateway Midtrans: '.($response->json('error_messages.0') ?? 'Kode HTTP '.$response->status()),
+                ]);
+            }
+
+            $snapToken = (string) $response->json('token');
+            $redirectUrl = (string) $response->json('redirect_url');
+
+            $topUp = WalletTopUp::query()->create([
+                'customer_id' => $customer->id,
+                'midtrans_order_id' => $orderId,
+                'gross_amount' => $amount,
+                'settled_amount' => 0,
+                'status' => 'pending',
+            ]);
+
+            GatewayTransaction::query()->create([
+                'provider' => 'midtrans',
+                'provider_reference' => $orderId,
+                'idempotency_key' => $idempotencyKey,
+                'type' => 'topup',
+                'status' => 'pending',
+                'gross_amount' => $amount,
+                'fee_amount' => 0,
+                'net_amount' => $amount,
+                'payload' => $response->json(),
+                'customer_id' => $customer->id,
+                'internal_type' => 'wallet_top_up',
+                'internal_id' => $topUp->id,
+                'midtrans_order_id' => $orderId,
+            ]);
+
+            return [
+                'snap_token' => $snapToken,
+                'redirect_url' => $redirectUrl,
+                'order_id' => $orderId,
+                'mode' => 'midtrans',
+            ];
+        } catch (ConnectionException) {
+            throw ValidationException::withMessages([
+                'amount' => 'Tidak dapat terhubung ke server Midtrans. Periksa koneksi internet Anda.',
+            ]);
+        }
     }
 
     /**
@@ -297,75 +275,50 @@ class MidtransGatewayService
      *
      * @throws ValidationException
      */
-    public function createOrderPayment(Order $order): array
+    public function createOrderPayment(Order $order, ?int $amount = null): array
     {
         $this->guardPaymentCreation();
 
         $serverKey = $this->serverKey();
         $enabled = EnvironmentClass::isEnabled();
         $orderId = $order->number;
+        $grossAmount = $amount ?? (int) $order->total;
         $idempotencyKey = GatewayTransaction::idempotencyKey('midtrans', $orderId.':pending');
 
-        if ($enabled && $serverKey !== '') {
-            $response = Http::withBasicAuth($serverKey, '')
-                ->connectTimeout(3)
-                ->timeout(10)
-                ->acceptJson()
-                ->post($this->snapBaseUrl(), [
-                    'transaction_details' => [
-                        'order_id' => $orderId,
-                        'gross_amount' => (int) $order->total,
-                    ],
-                    'customer_details' => [
-                        'first_name' => $order->customer?->name,
-                        'email' => $order->customer?->email,
-                        'phone' => $order->customer?->phone,
-                    ],
-                    'item_details' => $order->items->map(fn ($item): array => [
-                        'id' => (string) ($item->menu_item_id ?? $item->id),
-                        'price' => (int) $item->unit_price,
-                        'quantity' => (int) $item->quantity,
-                        'name' => $item->name,
-                    ])->values()->all(),
-                ]);
+        // Tidak ada mode simulasi: gateway belum aktif/terkonfigurasi => fail-closed (503).
+        if (! $enabled || $serverKey === '') {
+            throw new PaymentGatewayUnavailableException;
+        }
 
-            if (! $response->successful()) {
-                throw ValidationException::withMessages([
-                    'payment_method' => 'Gagal membuat pembayaran Midtrans. Silakan coba lagi.',
-                ]);
-            }
+        // Transaksi Snap yang masih pending dipakai ulang: Midtrans menolak order_id ganda.
+        $existing = GatewayTransaction::query()
+            ->where('midtrans_order_id', $orderId)
+            ->where('status', 'pending')
+            ->whereNotNull('payload')
+            ->latest('id')
+            ->first();
 
-            GatewayTransaction::query()->updateOrCreate(
-                ['idempotency_key' => $idempotencyKey],
-                [
-                    'provider' => 'midtrans',
-                    'provider_reference' => $orderId,
-                    'type' => 'payment',
-                    'status' => 'pending',
-                    'gross_amount' => (int) $order->total,
-                    'fee_amount' => 0,
-                    'net_amount' => (int) $order->total,
-                    'payload' => $response->json(),
-                    'customer_id' => $order->customer_id,
-                    'order_id' => $order->id,
-                    'internal_type' => 'order',
-                    'internal_id' => $order->id,
-                    'midtrans_order_id' => $orderId,
-                ],
-            );
+        $existingToken = (string) data_get($existing?->payload, 'token', '');
 
+        if ($existingToken !== '') {
             return [
-                'snap_token' => (string) $response->json('token'),
-                'redirect_url' => (string) $response->json('redirect_url'),
+                'snap_token' => $existingToken,
+                'redirect_url' => (string) data_get($existing->payload, 'redirect_url', ''),
                 'order_id' => $orderId,
                 'mode' => 'midtrans',
             ];
         }
 
-        // Mode simulasi hanya untuk tier local/testing yang lolos gate environment;
-        // di staging/production/resolved-fail-closed tidak pernah membuat transaksi palsu.
-        if (! FailClosedGuard::allowsMockRoutes()) {
-            throw new PaymentGatewayUnavailableException;
+        $response = Http::withBasicAuth($serverKey, '')
+            ->connectTimeout(3)
+            ->timeout(10)
+            ->acceptJson()
+            ->post($this->snapBaseUrl(), $this->snapOrderPayload($order, $orderId, $grossAmount));
+
+        if (! $response->successful()) {
+            throw ValidationException::withMessages([
+                'payment_method' => 'Gagal membuat pembayaran Midtrans. Silakan coba lagi.',
+            ]);
         }
 
         GatewayTransaction::query()->updateOrCreate(
@@ -375,10 +328,10 @@ class MidtransGatewayService
                 'provider_reference' => $orderId,
                 'type' => 'payment',
                 'status' => 'pending',
-                'gross_amount' => (int) $order->total,
+                'gross_amount' => $grossAmount,
                 'fee_amount' => 0,
-                'net_amount' => (int) $order->total,
-                'payload' => ['mode' => 'mock'],
+                'net_amount' => $grossAmount,
+                'payload' => $response->json(),
                 'customer_id' => $order->customer_id,
                 'order_id' => $order->id,
                 'internal_type' => 'order',
@@ -388,11 +341,85 @@ class MidtransGatewayService
         );
 
         return [
-            'snap_token' => null,
-            'redirect_url' => null,
+            'snap_token' => (string) $response->json('token'),
+            'redirect_url' => (string) $response->json('redirect_url'),
             'order_id' => $orderId,
-            'mode' => 'mock',
+            'mode' => 'midtrans',
         ];
+    }
+
+    /**
+     * Susun payload Snap untuk pesanan.
+     * Hanya sertakan item_details bila totalnya pas dengan gross_amount (Midtrans wajib sum(items)=gross).
+     * Ini menangani kasus split payment (gross < total) dengan tidak mengirim item_details.
+     */
+    private function snapOrderPayload(Order $order, string $orderId, int $grossAmount): array
+    {
+        $payload = [
+            'transaction_details' => [
+                'order_id' => $orderId,
+                'gross_amount' => $grossAmount,
+            ],
+            'customer_details' => [
+                'first_name' => $order->customer?->name,
+                'email' => $order->customer?->email,
+                'phone' => $order->customer?->phone,
+            ],
+            'callbacks' => [
+                'finish' => $order->customer_id
+                    ? url('/akun/pesanan/'.$order->id)
+                    : url('/pesanan/'.$order->id),
+                'unfinish' => $order->customer_id
+                    ? url('/akun/pesanan/'.$order->id.'/bayar')
+                    : url('/pesanan/'.$order->id),
+                'error' => $order->customer_id
+                    ? url('/akun/pesanan/'.$order->id.'/bayar?error=1')
+                    : url('/pesanan/'.$order->id),
+            ],
+        ];
+
+        $itemDetails = self::orderItemDetails($order, $grossAmount);
+
+        if ($itemDetails !== null) {
+            $payload['item_details'] = $itemDetails;
+        }
+
+        return $payload;
+    }
+
+    /**
+     * Rincian item Snap: baris menu + diskon/PB1/layanan agar total sama dengan gross_amount.
+     * Mengembalikan null bila jumlahnya tidak cocok (mis. split payment) — Midtrans menolak 400.
+     *
+     * @return array<int, array<string, mixed>>|null
+     */
+    public static function orderItemDetails(Order $order, int $grossAmount): ?array
+    {
+        $lines = $order->items->map(fn ($item): array => [
+            'id' => (string) ($item->menu_item_id ?? $item->id),
+            'price' => (int) $item->unit_price,
+            'quantity' => (int) $item->quantity,
+            'name' => $item->name,
+        ])->values()->all();
+
+        $adjustments = [];
+        if ((int) $order->discount > 0) {
+            $adjustments[] = ['id' => 'DISKON', 'price' => -(int) $order->discount, 'quantity' => 1, 'name' => 'Diskon'];
+        }
+        if ((int) $order->tax > 0) {
+            $adjustments[] = ['id' => 'PB1', 'price' => (int) $order->tax, 'quantity' => 1, 'name' => 'PB1'];
+        }
+        if ((int) $order->service > 0) {
+            $adjustments[] = ['id' => 'LAYANAN', 'price' => (int) $order->service, 'quantity' => 1, 'name' => 'Layanan'];
+        }
+
+        $itemSum = collect($lines)->sum(fn ($l) => $l['price'] * $l['quantity']) + collect($adjustments)->sum('price');
+
+        if ($itemSum !== $grossAmount) {
+            return null;
+        }
+
+        return array_merge($lines, $adjustments);
     }
 
     /**

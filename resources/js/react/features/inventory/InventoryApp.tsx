@@ -1,28 +1,7 @@
 import * as React from 'react';
 import { apiRequest, firstError, type ValidationErrors } from '@/react/lib/api';
-import { Button } from '@/react/components/ui/button';
-import { Input, Select, Textarea } from '@/react/components/ui/input';
-import { FormField } from '@/react/components/ui/label';
-import { Badge } from '@/react/components/ui/badge';
-import { Switch } from '@/react/components/ui/switch';
-import {
-    Table,
-    TableWrap,
-    TableHeader,
-    TableBody,
-    TableRow,
-    TableHead,
-    TableCell,
-} from '@/react/components/ui/table';
-import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-    DialogDescription,
-    DialogFooter,
-} from '@/react/components/ui/dialog';
 import { Plus, Pencil, Package, Search, Loader2, AlertTriangle, ArrowDownUp } from 'lucide-react';
+import { Button, Input, Select, Textarea, FormField, Badge, Switch, Table, TableWrap, TableHeader, TableBody, TableRow, TableHead, TableCell, Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../../spa/ui-primitives';
 
 export interface IngredientItem {
     id: number;

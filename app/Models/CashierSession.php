@@ -71,6 +71,18 @@ class CashierSession extends Model
     }
 
     /**
+     * Sesi kasir aktif global (hanya boleh ada satu per toko).
+     */
+    public static function active(): ?self
+    {
+        return self::query()
+            ->where('status', 'open')
+            ->with('cashier')
+            ->latest('opened_at')
+            ->first();
+    }
+
+    /**
      * Total uang tunai yang seharusnya ada di laci dari pembayaran tunai
      * yang tercatat pada sesi ini. Saldo/QRIS/EDC tidak pernah masuk laci.
      */

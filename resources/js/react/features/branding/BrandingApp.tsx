@@ -1,10 +1,7 @@
 import * as React from 'react';
 import { apiRequest, firstError, type ValidationErrors } from '@/react/lib/api';
-import { Button } from '@/react/components/ui/button';
-import { Input, Textarea } from '@/react/components/ui/input';
-import { FormField } from '@/react/components/ui/label';
-import { ImageUpload } from '@/react/components/ui/image-upload';
 import { Save, Loader2, Sparkles, Phone, MapPin, Share2 } from 'lucide-react';
+import { Button, Input, Textarea, FormField, ImageUpload } from '../../spa/ui-primitives';
 
 export interface SiteBrandingData {
     brand_name: string;

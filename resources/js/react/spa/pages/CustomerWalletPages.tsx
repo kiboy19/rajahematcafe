@@ -3,12 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { mutate, useFlash, useResource } from '../hooks';
 import { Button, ErrorBox, Field, inputClass, Loading, Money, PageHeader, Panel } from '../ui';
 import type { CustomerUser } from '../session';
+import { payWithSnap } from '../midtrans';
 
 interface TopUpCheckout {
     snap_token: string | null;
     redirect_url: string | null;
     order_id: string;
-    mode: 'midtrans' | 'mock';
 }
 
 interface WalletData {
@@ -25,6 +25,7 @@ export function CustomerWalletTopUpPage({ user }: { user: CustomerUser }) {
     const navigate = useNavigate();
     const [amount, setAmount] = useState('');
     const [busy, setBusy] = useState(false);
+    const [paymentState, setPaymentState] = useState<'idle' | 'processing' | 'pending' | 'failed'>('idle');
     const [lastOrderId, setLastOrderId] = useState<string | null>(null);
 
     if (loading) return <Loading label="Memuat saldo..." />;
@@ -48,48 +49,40 @@ export function CustomerWalletTopUpPage({ user }: { user: CustomerUser }) {
             return;
         }
         setBusy(true);
+        setPaymentState('processing');
         const result = await mutate<TopUpCheckout>('POST', '/api/akun/saldo/topup', { amount: nominal });
         setBusy(false);
 
-        if (!result.ok) return flashError(result.message);
+        if (!result.ok) {
+            setPaymentState('failed');
+            return flashError(result.message);
+        }
 
         const checkout = result.data!;
         setLastOrderId(checkout.order_id);
 
-        if (checkout.mode === 'midtrans') {
-            // Redirect ke halaman pembayaran Midtrans
-            if (checkout.redirect_url) {
-                window.location.href = checkout.redirect_url;
-            } else if (checkout.snap_token) {
-                // Fallback: pakai Snap.js jika redirect_url tidak tersedia
-                if ((window as any).snap) {
-                    (window as any).snap.pay(checkout.snap_token, {
-                        onSuccess: () => navigate('/akun?topup=success'),
-                        onPending: () => navigate('/akun?topup=pending'),
-                        onError: () => flashError('Pembayaran gagal. Silakan coba lagi.'),
-                        onClose: () => {},
-                    });
-                } else {
-                    flashError('Gagal memuat pembayaran Midtrans. Silakan coba lagi.');
-                }
-            } else {
-                flashError('Tidak ada URL pembayaran. Hubungi administrator.');
-            }
+        // Selalu gunakan Midtrans (mode midtrans)
+        if (checkout.redirect_url) {
+            setPaymentState('pending');
+            window.location.href = checkout.redirect_url;
+        } else if (checkout.snap_token) {
+            setPaymentState('pending');
+            payWithSnap(checkout.snap_token, {
+                onSuccess: () => navigate('/akun?topup=success'),
+                onPending: () => navigate('/akun?topup=pending'),
+                onError: () => {
+                    setPaymentState('failed');
+                    flashError('Pembayaran gagal. Silakan coba lagi.');
+                },
+                onClose: () => setPaymentState('idle'),
+            }).catch((error: Error) => {
+                setPaymentState('failed');
+                flashError(error.message);
+            });
         } else {
-            // Mode simulasi: tampilkan tombol simulasi atau auto-settlement jika local
-            flashSuccess('Top-up dibuat dalam mode simulasi. Gunakan tombol "Simulasi Lunas" di bawah.');
+            setPaymentState('failed');
+            flashError('Tidak ada URL pembayaran. Hubungi administrator.');
         }
-    };
-
-    const simulate = async () => {
-        if (!lastOrderId) return flashError('Tidak ada transaksi untuk disimulasikan.');
-        setBusy(true);
-        const result = await mutate('POST', '/api/akun/saldo/topup-simulasi', { order_id: lastOrderId });
-        setBusy(false);
-        if (!result.ok) return flashError(result.message);
-        flashSuccess('Saldo berhasil di-top-up (simulasi).');
-        setLastOrderId(null);
-        window.location.reload();
     };
 
     return (
@@ -107,6 +100,7 @@ export function CustomerWalletTopUpPage({ user }: { user: CustomerUser }) {
                         <input
                             className={inputClass}
                             type="number"
+                            inputMode="numeric"
                             min={minTopup}
                             step={minTopup}
                             value={amount}
@@ -116,25 +110,50 @@ export function CustomerWalletTopUpPage({ user }: { user: CustomerUser }) {
                             disabled={busy}
                         />
                     </Field>
+
+                    <div className="flex flex-wrap gap-2">
+                        {[10000, 25000, 50000, 100000].map((chip) => (
+                            <button
+                                key={chip}
+                                type="button"
+                                onClick={() => setAmount(String(chip))}
+                                disabled={busy}
+                                className={`h-10 px-3 rounded-full text-xs font-semibold transition ${amount === String(chip) ? 'bg-primary text-white' : 'border border-line bg-surface text-ink-2 hover:border-line-strong'}`}
+                            >
+                                Rp{new Intl.NumberFormat('id-ID').format(chip)}
+                            </button>
+                        ))}
+                    </div>
+
                     <div className="text-xs text-ink-2">
                         Sisa batas harian: <span className="font-bold">{new Intl.NumberFormat('id-ID').format(dailyLimit - todayTopups)}</span>
                         {' / '}
                         Harian: {new Intl.NumberFormat('id-ID').format(dailyLimit)}
                     </div>
-                    <Button type="submit" className="w-full h-12" disabled={busy}>
-                        {busy ? 'Memproses...' : `Bayar Rp${new Intl.NumberFormat('id-ID').format(parseInt(amount) || minTopup)}`}
+
+                    {paymentState === 'processing' && (
+                        <div role="status" aria-live="polite" className="rounded-input bg-info-bg text-info p-3 text-sm flex items-center gap-2">
+                            <span className="animate-spin">⏳</span> Memproses pembayaran...
+                        </div>
+                    )}
+                    {paymentState === 'pending' && lastOrderId && (
+                        <div role="status" aria-live="polite" className="rounded-input bg-warn-bg text-warn p-3 text-sm space-y-1">
+                            <p>Transaksi: <code className="font-mono">{lastOrderId}</code></p>
+                            <p>Menunggu pembayaran selesai...</p>
+                            <p className="text-xs">Jika sudah membayar, silakan <button type="button" className="underline font-bold" onClick={() => window.location.reload()}>muat ulang halaman</button>.</p>
+                        </div>
+                    )}
+                    {paymentState === 'failed' && lastOrderId && (
+                        <div role="alert" className="rounded-input bg-bad-bg text-bad p-3 text-sm flex items-center justify-between">
+                            <span>Pembayaran gagal atau dibatalkan.</span>
+                            <button type="button" className="underline font-bold" onClick={() => { setPaymentState('idle'); setLastOrderId(null); }}>Coba lagi</button>
+                        </div>
+                    )}
+
+                    <Button type="submit" className="w-full h-12" disabled={busy || paymentState === 'pending' || paymentState === 'processing'}>
+                        {busy || paymentState === 'processing' ? 'Memproses...' : paymentState === 'pending' ? 'Menunggu Pembayaran...' : `Bayar Rp${new Intl.NumberFormat('id-ID').format(parseInt(amount) || minTopup)}`}
                     </Button>
                 </form>
-
-                {lastOrderId && (
-                    <div className="mt-4 p-3 rounded-input bg-info-bg text-info text-sm space-y-2">
-                        <p>Transaksi: <code className="font-mono">{lastOrderId}</code></p>
-                        <p>Menunggu pembayaran...</p>
-                        <Button variant="outline" className="w-full" onClick={simulate} disabled={busy}>
-                            Simulasi Lunas (Hanya Mode Dev)
-                        </Button>
-                    </div>
-                )}
             </Panel>
 
             <Panel className="p-5">

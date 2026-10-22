@@ -6,9 +6,28 @@ function TableWrap({ className, ...props }: React.HTMLAttributes<HTMLDivElement>
 }
 
 const Table = React.forwardRef<HTMLTableElement, React.TableHTMLAttributes<HTMLTableElement>>(
-    ({ className, ...props }, ref) => (
-        <table ref={ref} className={cn('w-full caption-bottom text-sm', className)} {...props} />
-    )
+    ({ className, ...props }, ref) => {
+        const innerRef = React.useRef<HTMLTableElement>(null);
+
+        // Salin teks <th> ke data-label setiap <td> agar layout kartu mobile
+        // (.table-cards di app.css) punya label tanpa sunting manual per fitur.
+        React.useLayoutEffect(() => {
+            const table = innerRef.current;
+            if (!table) return;
+            const heads = Array.from(table.querySelectorAll('thead th')).map((th) => th.textContent?.trim() ?? '');
+            table.querySelectorAll('tbody tr').forEach((row) => {
+                Array.from(row.children).forEach((cell, index) => {
+                    if (cell instanceof HTMLElement && heads[index]) {
+                        cell.dataset.label = heads[index];
+                    }
+                });
+            });
+        });
+
+        React.useImperativeHandle(ref, () => innerRef.current as HTMLTableElement, []);
+
+        return <table ref={innerRef} className={cn('table-cards w-full caption-bottom text-sm', className)} {...props} />;
+    }
 );
 Table.displayName = 'Table';
 

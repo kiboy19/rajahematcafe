@@ -1,8 +1,9 @@
 import { useState, type ReactNode } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
+import { Menu } from 'lucide-react';
 import { apiRequest } from '@/react/lib/api';
 import { routeToPath, isActivePath } from './navigation';
-import { Button, Toast } from './ui';
+import { Button, Toast, Dialog, DialogTrigger, DialogContent, DialogTitle } from './ui-primitives';
 import type { StaffUser } from './session';
 
 function NavIcon({ name }: { name: string }) {
@@ -50,7 +51,6 @@ export function StaffShell({
     toast?: { text: string; tone: 'success' | 'error' } | null;
 }) {
     const location = useLocation();
-    const navigate = useNavigate();
     const [navOpen, setNavOpen] = useState(false);
 
     const handleLogout = async () => {
@@ -60,12 +60,17 @@ export function StaffShell({
 
     return (
         <div className="min-h-screen flex flex-col bg-bg text-ink">
+            <a
+                href="#main-content"
+                className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:rounded-input focus:bg-primary focus:px-4 focus:py-2 focus:text-white"
+            >
+                Lewati ke konten utama
+            </a>
+
             {/* Header Utama */}
             <header className="min-h-14 bg-surface border-b border-line px-4 sm:px-5 py-2 flex flex-wrap items-center justify-between gap-3 sticky top-0 z-30">
                 <div className="flex items-center gap-3">
-                    <span className="w-8 h-8 rounded-full bg-accent text-ink-on-dark flex items-center justify-center font-display font-bold text-sm">
-                        R
-                    </span>
+                    <img src="/images/logo.svg" alt="" className="h-8 w-8 shrink-0 rounded-full" />
                     <div>
                         <Link to="/dashboard" className="font-display font-bold text-base leading-none block hover:text-primary">
                             Rajahemat
@@ -146,7 +151,7 @@ export function StaffShell({
                 )}
 
                 {/* Konten Halaman */}
-                <main className="flex-1 min-w-0 p-4 sm:p-6">{children}</main>
+                <main id="main-content" className="flex-1 min-w-0 p-4 sm:p-6">{children}</main>
             </div>
 
             <Toast message={toast ?? null} />

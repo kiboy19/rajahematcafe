@@ -1,39 +1,8 @@
 import * as React from 'react';
 import { apiRequest, firstError, type ValidationErrors } from '@/react/lib/api';
-import { Button } from '@/react/components/ui/button';
-import { Input, Textarea } from '@/react/components/ui/input';
-import { FormField } from '@/react/components/ui/label';
-import { Badge } from '@/react/components/ui/badge';
-import { ImageUpload } from '@/react/components/ui/image-upload';
 import { TiptapEditor } from '@/react/components/editor/TiptapEditor';
-import {
-    Table,
-    TableWrap,
-    TableHeader,
-    TableBody,
-    TableRow,
-    TableHead,
-    TableCell,
-} from '@/react/components/ui/table';
-import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-    DialogDescription,
-    DialogFooter,
-} from '@/react/components/ui/dialog';
-import {
-    AlertDialog,
-    AlertDialogContent,
-    AlertDialogHeader,
-    AlertDialogTitle,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogAction,
-    AlertDialogCancel,
-} from '@/react/components/ui/alert-dialog';
 import { Plus, Pencil, Trash2, Search, Loader2, Globe, Eye, Calendar, Sparkles } from 'lucide-react';
+import { Button, Input, Textarea, FormField, Badge, ImageUpload, Table, TableWrap, TableHeader, TableBody, TableRow, TableHead, TableCell, Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogAction, AlertDialogCancel } from '../../spa/ui-primitives';
 
 export interface PostItem {
     id: number;

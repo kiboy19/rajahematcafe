@@ -10,15 +10,47 @@ use App\Models\CashierSession;
 use App\Models\Customer;
 use App\Models\Order;
 use App\Models\Payment;
+use App\Services\MidtransGatewayService;
 use App\Services\MoneyCalculator;
 use App\Services\WalletService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class PaymentController extends Controller
 {
+    /**
+     * Buat transaksi Midtrans Snap untuk pelunasan penuh sisa tagihan pesanan.
+     * Lunas dipastikan oleh webhook settlement, bukan oleh respons endpoint ini.
+     */
+    public function initiateMidtrans(
+        Request $request,
+        Order $order,
+        MidtransGatewayService $gateway,
+    ): JsonResponse {
+        $session = CashierSession::openFor($request->user());
+
+        if (! $session) {
+            return response()->json(['message' => 'Buka sesi kasir terlebih dahulu sebelum menerima pembayaran.'], 422);
+        }
+
+        $order = $order->load(['items', 'customer']);
+
+        $remaining = $order->remainingBalance();
+        if ($remaining <= 0) {
+            return response()->json(['message' => 'Pesanan ini sudah lunas.'], 422);
+        }
+
+        $checkout = $gateway->createOrderPayment($order, $remaining);
+
+        return response()->json([
+            'data' => $checkout,
+            'message' => 'Pembayaran digital siap. Selesaikan pembayaran melalui Midtrans.',
+        ]);
+    }
+
     public function store(
         StorePaymentRequest $request,
         Order $order,

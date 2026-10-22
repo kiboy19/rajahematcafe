@@ -22,7 +22,7 @@ export function ReportsPage() {
     const { data, loading, error, reload } = useResource<ReportData>(`/api/laporan/harian?tanggal=${date}`);
 
     return (
-        <div className="max-w-5xl flex flex-col gap-5">
+        <div className="max-w-7xl w-full flex flex-col gap-5">
             <PageHeader
                 title="Laporan Harian"
                 subtitle="Rekap penjualan, pembayaran, dan sesi kasir."
@@ -43,6 +43,7 @@ export function ReportsPage() {
                         <StatCard label="PB1 + Layanan" value={<Money value={data.taxTotal + data.serviceTotal} />} />
                     </div>
 
+                    <div className="grid gap-5 lg:grid-cols-2 items-start">
                     <Panel className="p-5">
                         <h2 className="font-display text-lg font-bold mb-3">Pembayaran per Metode</h2>
                         {data.paymentsByMethod.length === 0 ? (
@@ -88,6 +89,7 @@ export function ReportsPage() {
                             </div>
                         )}
                     </Panel>
+                    </div>
 
                     <Panel className="p-5">
                         <h2 className="font-display text-lg font-bold mb-3">Daftar Pesanan</h2>

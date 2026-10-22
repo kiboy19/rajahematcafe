@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rajahemat Cafe — Perbandingan Arah Desain</title>
+<link rel="preconnect" href="https://fonts.bunny.net">
+<link href="https://fonts.bunny.net/css?family=karla:400,500,600,700|playfair-display:600,700" rel="stylesheet">
+<style>
+  :root {
+    --ink:#18181B; --paper:#FFFFFF;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Karla',system-ui,sans-serif;color:#18181B;background:#EDEAE4;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1280px;margin:0 auto;padding:32px 20px 80px}
+  .page-head{text-align:center;margin-bottom:40px}
+  .page-head h1{font-family:'Playfair Display',serif;font-size:36px;letter-spacing:-.02em}
+  .page-head p{color:#57534E;margin-top:8px;font-size:15px}
+  .opt-head{display:flex;align-items:center;gap:14px;margin:48px 0 20px;padding-left:4px}
+  .opt-head .num{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px;color:#fff}
+  .opt-head h2{font-family:'Playfair Display',serif;font-size:26px}
+  .opt-head span{font-size:13px;color:#6B6560;display:block;font-weight:400;font-family:'Karla',sans-serif;letter-spacing:0}
+  .frame{border-radius:14px;overflow:hidden;box-shadow:0 24px 60px -20px rgba(24,20,16,.32),0 0 0 1px rgba(24,20,16,.07);background:#fff}
+  .browser-bar{height:34px;background:#F1EEE9;display:flex;align-items:center;gap:6px;padding:0 14px;border-bottom:1px solid #E2DDD5}
+  .dot{width:10px;height:10px;border-radius:50%;background:#D6D0C7}
+  .url{flex:1;margin-left:12px;height:19px;border-radius:5px;background:#fff;display:flex;align-items:center;padding:0 10px;font-size:11px;color:#9A938A;border:1px solid #E7E2DA}
+
+  /* ================= OPTION A ================= */
+  .A{--bg:#FAF7F2;--surf:#FFFFFF;--surf2:#F3EDE2;--strong:#EADCC8;--ink:#241810;--ink2:#635345;
+      --line:#E5DCD0;--lineS:#CBBBA9;--pri:#8C4518;--priH:#703511;--acc:#3A2116;
+      --ok:#166534;--okb:#DCFCE7;--warn:#9A3412;--warnb:#FFEDD5;
+      background:var(--bg);color:var(--ink);font-family:'Karla',sans-serif}
+  .A .d{font-family:'Playfair Display',serif}
+
+  /* Top bar */
+  .A .top{display:flex;align-items:center;justify-content:space-between;gap:24px;padding:0 40px;height:72px;background:rgba(250,247,242,.92);border-bottom:1px solid var(--line);backdrop-filter:blur(8px)}
+  .A .brand{display:flex;align-items:center;gap:12px;min-width:0}
+  .A .brand .mark{width:42px;height:42px;border-radius:50%;background:var(--acc);color:#FFF9F2;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+  .A .brand .mark svg{width:20px;height:20px}
+  .A .brand .txt{display:flex;flex-direction:column;line-height:1.1}
+  .A .brand .txt b{font-family:'Playfair Display',serif;font-size:18px;letter-spacing:-.01em}
+  .A .brand .txt small{font-size:10.5px;color:var(--ink2);letter-spacing:.02em}
+  .A nav{display:flex;gap:26px;font-size:14px;font-weight:600}
+  .A nav a{color:var(--ink);text-decoration:none;padding:6px 0;border-bottom:2px solid transparent;transition:border-color .15s}
+  .A nav a:hover{border-color:var(--pri)}
+  .A nav a.on{color:var(--pri);border-color:var(--pri)}
+  .A .top-actions{display:flex;align-items:center;gap:10px}
+  .A .link-muted{font-size:14px;font-weight:600;color:var(--ink2);text-decoration:none;padding:8px 10px;border-radius:8px}
+  .A .link-muted:hover{background:var(--surf2);color:var(--ink)}
+  .A .btn{display:inline-flex;align-items:center;gap:8px;height:44px;padding:0 20px;border-radius:8px;font-weight:700;font-size:14px;text-decoration:none;border:1px solid transparent;transition:background-color .15s,border-color .15s}
+  .A .btn-p{background:var(--pri);color:#fff}
+  .A .btn-p:hover{background:var(--priH)}
+  .A .btn-o{background:var(--surf);color:var(--ink);border-color:var(--lineS)}
+  .A .btn-o:hover{background:var(--surf2)}
+  .A .btn-sm{height:38px;padding:0 14px;font-size:13px}
+
+  /* Hero */
+  .A .hero{background:var(--surf2);border-bottom:1px solid var(--line)}
+  .A .hero-in{max-width:1180px;margin:0 auto;padding:72px 40px 80px;display:grid;grid-template-columns:1.05fr .95fr;gap:56px;align-items:center}
+  .A .eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;font-weight:600;color:var(--pri);padding:6px 12px;border-radius:999px;background:var(--strong);letter-spacing:.01em}
+  .A .eyebrow i{width:5px;height:5px;border-radius:50%;background:var(--pri);display:block}
+  .A h1{font-family:'Playfair Display',serif;font-size:64px;line-height:1.03;letter-spacing:-.025em;margin:22px 0 0;font-weight:700;text-wrap:balance}
+  .A h1 em{font-style:normal;color:var(--pri);display:block;margin-top:6px}
+  .A .lead{font-size:18px;line-height:1.6;color:var(--ink2);margin-top:20px;max-width:34ch}
+  .A .cta-row{display:flex;gap:12px;margin-top:32px;flex-wrap:wrap}
+  .A .note{font-size:13px;color:var(--ink2);margin-top:16px;display:flex;align-items:center;gap:7px}
+  .A .note svg{width:14px;height:14px;color:var(--pri)}
+
+  /* Hero visual: stacked photo cards */
+  .A .hero-vis{position:relative;height:400px}
+  .A .photo{position:absolute;border-radius:12px;overflow:hidden;background:#E4D8C6;box-shadow:0 18px 40px -16px rgba(36,24,16,.35)}
+  .A .photo .cup{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#B08A62}
+  .A .photo .cup svg{width:64px;height:64px;opacity:.55}
+  .A .photo .tag{position:absolute;left:12px;bottom:12px;background:rgba(255,255,255,.94);border-radius:7px;padding:8px 11px;display:flex;flex-direction:column;line-height:1.2}
+  .A .photo .tag b{font-size:12.5px;font-weight:700}
+  .A .photo .tag small{font-size:11px;color:var(--pri);font-weight:700;font-variant-numeric:tabular-nums}
+  .A .p1{width:74%;height:74%;left:0;top:0;z-index:2}
+  .A .p2{width:54%;height:56%;right:0;bottom:0;z-index:3;background:#DCCBB4}
+  .A .stamp{position:absolute;right:38px;top:-14px;z-index:4;width:88px;height:88px;border-radius:50%;background:var(--acc);color:#FFF9F2;display:flex;align-items:center;justify-content:center;text-align:center;font-size:9.5px;font-weight:700;line-height:1.25;letter-spacing:.04em;padding:10px;box-shadow:0 10px 24px -8px rgba(36,24,16,.5)}
+
+  /* Value strip */
+  .A .values{max-width:1180px;margin:0 auto;padding:56px 40px 8px;display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+  .A .val{display:flex;gap:14px;align-items:flex-start}
+  .A .val .ic{width:40px;height:40px;border-radius:10px;background:var(--strong);color:var(--pri);display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+  .A .val .ic svg{width:19px;height:19px}
+  .A .val h3{font-size:15px;font-weight:700;letter-spacing:-.005em}
+  .A .val p{font-size:13.5px;color:var(--ink2);margin-top:4px;line-height:1.45}
+
+  /* Section header */
+  .A .sec{max-width:1180px;margin:0 auto;padding:64px 40px}
+  .A .sec-head{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;margin-bottom:28px}
+  .A .sec-head h2{font-family:'Playfair Display',serif;font-size:34px;letter-spacing:-.02em;margin-top:10px}
+  .A .sec-head .kicker{font-size:12.5px;font-weight:700;color:var(--pri);letter-spacing:.08em;text-transform:uppercase}
+  .A .more{font-size:14px;font-weight:700;color:var(--pri);text-decoration:none;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+  .A .more:hover{color:var(--priH)}
+  .A .more svg{width:15px;height:15px}
+
+  /* Menu cards */
+  .A .cards{display:grid;grid-template-columns:repeat(4,1fr);gap:20px}
+  .A .card{background:var(--surf);border:1px solid var(--line);border-radius:12px;overflow:hidden;box-shadow:0 1px 2px rgba(36,24,16,.06);transition:transform .18s ease,box-shadow .18s ease;display:flex;flex-direction:column}
+  .A .card:hover{transform:translateY(-2px);box-shadow:0 12px 26px -14px rgba(36,24,16,.4)}
+  .A .card .img{aspect-ratio:4/3;background:#EFE4D5;display:flex;align-items:center;justify-content:center;color:#BC9772;position:relative}
+  .A .card .img svg{width:40px;height:40px;opacity:.6}
+  .A .card .img .pill{position:absolute;left:10px;top:10px;background:rgba(255,255,255,.94);color:var(--pri);font-size:10.5px;font-weight:700;padding:4px 9px;border-radius:999px;letter-spacing:.03em}
+  .A .card .body{padding:14px 15px 16px;display:flex;flex-direction:column;gap:4px}
+  .A .card .cat{font-size:11.5px;color:var(--ink2);font-weight:600}
+  .A .card .name{font-family:'Playfair Display',serif;font-size:16.5px;font-weight:700;line-height:1.25;letter-spacing:-.01em}
+  .A .card .price{font-size:14.5px;font-weight:700;color:var(--pri);font-variant-numeric:tabular-nums;margin-top:6px}
+
+  /* Story band */
+  .A .story{background:var(--surface-2,#F3EDE2);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+  .A .story-in{max-width:1180px;margin:0 auto;padding:64px 40px;display:grid;grid-template-columns:1.1fr .9fr;gap:48px;align-items:center}
+  .A .story h2{font-family:'Playfair Display',serif;font-size:32px;line-height:1.2;letter-spacing:-.02em;margin-top:12px}
+  .A .story p{color:var(--ink2);line-height:1.65;margin-top:14px;font-size:15.5px;max-width:52ch}
+  .A .promo{background:var(--acc);color:#FFF9F2;border-radius:12px;padding:30px}
+  .A .promo h3{font-family:'Playfair Display',serif;font-size:23px;letter-spacing:-.015em}
+  .A .promo p{font-size:14px;line-height:1.6;color:rgba(255,249,242,.78);margin-top:10px;max-width:36ch}
+  .A .promo .btn{margin-top:20px}
+
+  /* Footer */
+  .A .foot{background:var(--acc);color:#FFF9F2;margin-top:0}
+  .A .foot-in{max-width:1180px;margin:0 auto;padding:48px 40px 0;display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:36px}
+  .A .foot h4{font-family:'Playfair Display',serif;font-size:19px;margin-bottom:10px}
+  .A .foot b{font-size:13.5px;display:block;margin-bottom:10px}
+  .A .foot p,.A .foot a{font-size:13.5px;color:rgba(255,249,242,.76);text-decoration:none;line-height:1.7}
+  .A .foot a:hover{color:#fff}
+  .A .foot .lic{max-width:1180px;margin:36px auto 0;padding:16px 40px;border-top:1px solid rgba(255,255,255,.12);font-size:12px;color:rgba(255,249,242,.55);display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
+
+  /* ================= OPTION B ================= */
+  .B{--bg:#F8F7F4;--surf:#FFFFFF;--ink:#18181B;--ink2:#52525B;--line:#E4E4E7;--lineS:#A1A1AA;
+      --pri:#B45309;--priH:#92400E;--acc:#27272A;--ok:#047857;--okb:#D1FAE5;--warnb:#FEF3C7;--warn:#92400E;
+      background:var(--bg);color:var(--ink);font-family:'Karla',sans-serif;margin-top:64px}
+  .B .top{display:flex;align-items:center;justify-content:space-between;gap:24px;padding:0 40px;height:64px;background:var(--surf);border-bottom:1px solid var(--line);position:relative}
+  .B .top:after{content:"";position:absolute;left:0;right:0;bottom:-4px;height:4px;background:var(--acc)}
+  .B .brand{display:flex;align-items:center;gap:10px}
+  .B .brand .mark{width:34px;height:34px;background:var(--acc);color:#fff;display:flex;align-items:center;justify-content:center;border-radius:6px}
+  .B .brand .mark svg{width:18px;height:18px}
+  .B .brand b{font-size:16.5px;font-weight:800;letter-spacing:-.03em}
+  .B nav{display:flex;gap:2px;font-size:13.5px;font-weight:700}
+  .B nav a{color:var(--ink2);text-decoration:none;padding:8px 14px;border-radius:5px;transition:background-color .1s}
+  .B nav a:hover{background:#F4F4F5;color:var(--ink)}
+  .B nav a.on{background:var(--acc);color:#fff}
+  .B .top-actions{display:flex;align-items:center;gap:8px}
+  .B .btn{display:inline-flex;align-items:center;gap:8px;height:42px;padding:0 18px;border-radius:5px;font-weight:700;font-size:13.5px;text-decoration:none;border:1px solid transparent;transition:background-color .1s}
+  .B .btn-p{background:var(--pri);color:#fff}
+  .B .btn-p:hover{background:var(--priH)}
+  .B .btn-d{background:var(--acc);color:#fff}
+  .B .btn-o{background:#fff;border-color:var(--lineS);color:var(--ink)}
+  .B .btn-o:hover{background:#F4F4F5}
+  .B .btn-sm{height:36px;padding:0 12px;font-size:12.5px}
+  .B .link-muted{font-size:13.5px;font-weight:700;color:var(--ink2);text-decoration:none;padding:8px 10px}
+
+  /* B hero: dense grid blocks */
+  .B .hero{background:#fff;border-bottom:1px solid var(--line)}
+  .B .hero-in{max-width:1180px;margin:0 auto;padding:56px 40px;display:grid;grid-template-columns:1fr 420px;gap:48px;align-items:center}
+  .B .tagrow{display:flex;gap:6px;margin-bottom:18px}
+  .B .tag{font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;padding:5px 9px;border-radius:4px;background:#F4F4F5;color:var(--ink2);border:1px solid var(--line)}
+  .B .tag.hot{background:var(--warnb);color:var(--warn);border-color:#FCD34D}
+  .B h1{font-size:56px;line-height:1.02;letter-spacing:-.045em;font-weight:800;margin:0;text-wrap:balance}
+  .B h1 mark{background:var(--pri);color:#fff;padding:0 10px;border-radius:4px;box-decoration-break:clone}
+  .B .lead{font-size:16px;line-height:1.6;color:var(--ink2);margin-top:18px;max-width:46ch}
+  .B .cta-row{display:flex;gap:10px;margin-top:28px;flex-wrap:wrap}
+  .B .stats{display:grid;grid-template-columns:repeat(3,1fr);margin-top:36px;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+  .B .stat{padding:16px 16px 16px 0;border-right:1px solid var(--line)}
+  .B .stat:last-child{border-right:0;padding-left:16px}
+  .B .stat b{display:block;font-size:26px;font-weight:800;letter-spacing:-.04em;font-variant-numeric:tabular-nums}
+  .B .stat span{font-size:11.5px;color:var(--ink2);font-weight:600}
+  .B .hero-vis{background:var(--acc);border-radius:6px;padding:0;overflow:hidden;position:relative;height:360px;display:flex;flex-direction:column;justify-content:space-between}
+  .B .hero-vis .grid-lines{position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.07) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.07) 1px,transparent 1px);background-size:32px 32px}
+  .B .hero-vis .cap{position:relative;padding:20px;color:#fff;display:flex;justify-content:space-between;align-items:flex-start}
+  .B .hero-vis .cap b{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.65)}
+  .B .hero-vis .cup{position:relative;display:flex;align-items:center;justify-content:center;flex:1;color:rgba(255,255,255,.25)}
+  .B .hero-vis .cup svg{width:110px;height:110px}
+  .B .hero-vis .bar{position:relative;background:var(--pri);color:#fff;padding:14px 20px;display:flex;justify-content:space-between;align-items:center;font-size:13px;font-weight:800}
+  .B .hero-vis .bar span{font-variant-numeric:tabular-nums}
+
+  /* B features: bordered blocks */
+  .B .feat{max-width:1180px;margin:0 auto;padding:0 40px;display:grid;grid-template-columns:repeat(3,1fr);border-left:1px solid var(--line)}
+  .B .feat .f{padding:28px 24px;border-right:1px solid var(--line);border-bottom:1px solid var(--line)}
+  .B .feat .f .n{font-size:11px;font-weight:800;letter-spacing:.12em;color:var(--pri);font-variant-numeric:tabular-nums}
+  .B .feat .f h3{font-size:15.5px;font-weight:800;margin-top:10px;letter-spacing:-.02em}
+  .B .feat .f p{font-size:13.5px;color:var(--ink2);line-height:1.5;margin-top:6px}
+
+  /* B section */
+  .B .sec{max-width:1180px;margin:0 auto;padding:56px 40px}
+  .B .sec-head{display:flex;align-items:center;justify-content:space-between;gap:20px;margin-bottom:22px;padding-bottom:14px;border-bottom:2px solid var(--acc)}
+  .B .sec-head h2{font-size:26px;font-weight:800;letter-spacing:-.035em;display:flex;align-items:center;gap:10px}
+  .B .sec-head h2 .sq{width:12px;height:12px;background:var(--pri);display:block;border-radius:2px}
+  .B .more{font-size:13px;font-weight:800;color:var(--ink);text-decoration:none;background:#fff;border:1px solid var(--lineS);border-radius:5px;padding:7px 12px}
+  .B .more:hover{background:#F4F4F5}
+
+  .B .cards{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-radius:6px;overflow:hidden}
+  .B .card{background:#fff;display:flex;flex-direction:column;transition:background-color .1s}
+  .B .card:hover{background:#FAFAFA}
+  .B .card .img{aspect-ratio:1/1;background:#F4F4F5;display:flex;align-items:center;justify-content:center;color:#A1A1AA;border-bottom:1px solid var(--line);position:relative}
+  .B .card .img svg{width:38px;height:38px}
+  .B .card .img .pill{position:absolute;top:8px;left:8px;background:var(--acc);color:#fff;font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;padding:3px 7px;border-radius:3px}
+  .B .card .body{padding:13px 14px 15px;display:flex;flex-direction:column;gap:3px;flex:1}
+  .B .card .cat{font-size:10.5px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:#71717A}
+  .B .card .name{font-size:15px;font-weight:800;letter-spacing:-.025em;line-height:1.25}
+  .B .card .foot{display:flex;align-items:center;justify-content:space-between;margin-top:auto;padding-top:10px}
+  .B .card .price{font-size:14.5px;font-weight:800;font-variant-numeric:tabular-nums}
+  .B .card .add{width:30px;height:30px;border-radius:4px;background:var(--pri);color:#fff;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:700;line-height:1;border:0}
+
+  /* B promo band */
+  .B .band{background:var(--acc);color:#fff}
+  .B .band-in{max-width:1180px;margin:0 auto;padding:44px 40px;display:flex;align-items:center;justify-content:space-between;gap:32px;flex-wrap:wrap}
+  .B .band h2{font-size:30px;font-weight:800;letter-spacing:-.04em;line-height:1.1}
+  .B .band p{font-size:14px;color:rgba(255,255,255,.7);margin-top:8px;max-width:50ch}
+  .B .band .btn-p{background:var(--pri)}
+
+  .B .foot{background:#09090B;color:#fff}
+  .B .foot-in{max-width:1180px;margin:0 auto;padding:44px 40px 0;display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:36px}
+  .B .foot b{font-size:13px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;display:block;margin-bottom:12px;color:#fff}
+  .B .foot p,.B .foot a{font-size:13.5px;color:#A1A1AA;text-decoration:none;line-height:1.7}
+  .B .foot a:hover{color:#fff}
+  .B .foot .lic{max-width:1180px;margin:32px auto 0;padding:16px 40px;border-top:1px solid #27272A;font-size:12px;color:#52525B}
+
+  /* comparison table */
+  .cmp{margin-top:72px;background:#fff;border-radius:14px;padding:32px;box-shadow:0 0 0 1px rgba(24,20,16,.07)}
+  .cmp h2{font-family:'Playfair Display',serif;font-size:24px;margin-bottom:6px}
+  .cmp .sub{font-size:13.5px;color:#6B6560;margin-bottom:20px}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th,td{text-align:left;padding:12px 14px;border-bottom:1px solid #EDEAE4;vertical-align:top}
+  th{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:#7A736B}
+  td:first-child{font-weight:700;width:24%}
+  .chipA{display:inline-block;background:#F3EDE2;color:#8C4518;font-weight:700;font-size:12px;padding:2px 8px;border-radius:999px}
+  .chipB{display:inline-block;background:#F4F4F5;color:#27272A;font-weight:700;font-size:12px;padding:2px 8px;border-radius:4px}
+  .reco{margin-top:24px;padding:16px 18px;border-left:3px solid #8C4518;background:#FAF7F2;border-radius:0 8px 8px 0;font-size:14px}
+
+  @media (max-width:900px){
+    .A .hero-in,.A .story-in{grid-template-columns:1fr;gap:36px}
+    .A h1{font-size:44px}
+    .A .hero-vis{height:300px;max-width:420px}
+    .A nav,.B nav{display:none}
+    .A .values,.B .feat{grid-template-columns:1fr}
+    .A .cards,.B .cards{grid-template-columns:repeat(2,1fr)}
+    .A .top,.B .top{padding:0 18px}
+    .A .hero-in,.A .sec,.A .story-in,.A .values{padding-left:20px;padding-right:20px}
+    .B .hero-in,.B .sec,.B .feat{padding-left:20px;padding-right:20px}
+    .B .hero-in{grid-template-columns:1fr}
+    .B h1{font-size:38px}
+    .A .foot-in,.B .foot-in{grid-template-columns:1fr;padding-left:20px;padding-right:20px}
+    .B .hero-vis{height:260px}
+    .A .stamp{right:8px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="page-head">
+    <h1>Perbandingan Arah Desain</h1>
+    <p>Rajahemat Cafe — dua alternatif visual untuk halaman publik (contoh data dari database saat ini)</p>
+  </div>
+
+  <!-- ========== OPTION A ========== -->
+  <div class="opt-head">
+    <div class="num" style="background:#8C4518">A</div>
+    <h2>Artisan Coffeehouse &amp; Warm Editorial <span>Cream + espresso · Playfair Display + Karla · sudut 12px · foto bertumpuk</span></h2>
+  </div>
+
+  <div class="frame">
+    <div class="browser-bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">rajahemat.test/</span></div>
+    <div class="A">
+      <div class="top">
+        <div class="brand">
+          <span class="mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 8h12v6a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4V8Z"/><path d="M16 9h1.5a2.5 2.5 0 0 1 0 5H16"/><path d="M6 4.5c.5-.8.5-1.5 0-2.3M10 4.5c.5-.8.5-1.5 0-2.3"/></svg></span>
+          <span class="txt"><b>Rajahemat Cafe</b><small>Kopi &amp; Eatery · Sejak 2021</small></span>
+        </div>
+        <nav>
+          <a href="#" class="on">Menu</a><a href="#">Tentang Kami</a><a href="#">Blog</a><a href="#">Kontak</a>
+        </nav>
+        <div class="top-actions">
+          <a href="#" class="link-muted">Masuk</a>
+          <a href="#" class="btn btn-p btn-sm">Pesan Sekarang</a>
+        </div>
+      </div>
+
+      <div class="hero">
+        <div class="hero-in">
+          <div>
+            <span class="eyebrow"><i></i>Ngopi harga bersahabat, tiap hari</span>
+            <h1>Kopi nikmat,<em>harga bersahabat.</em></h1>
+            <p class="lead">Biji pilihan yang diseduh saat dipesan. Pesan dari meja lewat QR, tanpa antre.</p>
+            <div class="cta-row">
+              <a href="#" class="btn btn-p">Pesan Sekarang
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 12h13M13 6l6 6-6 6"/></svg>
+              </a>
+              <a href="#" class="btn btn-o">Lihat Menu</a>
+            </div>
+            <p class="note">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s7-5.7 7-11a7 7 0 1 0-14 0c0 5.3 7 11 7 11Z"/><circle cx="12" cy="10" r="2.4"/></svg>
+              Jl. Raya Kopi No. 12 · Buka 08.00–22.00
+            </p>
+          </div>
+          <div class="hero-vis">
+            <div class="stamp">FRESH<br>ROAST<br>DAILY</div>
+            <div class="photo p1"><div class="cup"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M4 8h12v6a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4V8Z"/><path d="M16 9h1.5a2.5 2.5 0 0 1 0 5H16"/></svg></div><div class="tag"><b>Kopi Susu Aren</b><small>Rp 20.000</small></div></div>
+            <div class="photo p2"><div class="cup"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M4 8h12v6a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4V8Z"/><path d="M16 9h1.5a2.5 2.5 0 0 1 0 5H16"/></svg></div><div class="tag"><b>Single Origin V60</b><small>Rp 25.000</small></div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="values">
+        <div class="val">
+          <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM20 14v3M14 20h3M20 20v.5"/></svg></span>
+          <div><h3>Pesan lewat QR meja</h3><p>Pindai, pilih menu, pesanan langsung ke dapur.</p></div>
+        </div>
+        <div class="val">
+          <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2.5" y="6" width="19" height="13" rx="2"/><path d="M2.5 10h19"/><path d="M6 15h4"/></svg></span>
+          <div><h3>Saldo cashless</h3><p>Isi sekali, bayar tanpa uang tunai.</p></div>
+        </div>
+        <div class="val">
+          <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 8h12v6a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4V8Z"/><path d="M16 9h1.5a2.5 2.5 0 0 1 0 5H16"/><path d="M6 4.5c.5-.8.5-1.5 0-2.3M10 4.5c.5-.8.5-1.5 0-2.3"/></svg></span>
+          <div><h3>Kopi segar tiap hari</h3><p>Diseduh saat dipesan, bukan disimpan lama.</p></div>
+        </div>
+      </div>
+
+      <div class="sec">
+        <div class="sec-head">
+          <div><div class="kicker">Favorit pelanggan</div><h2>Menu Unggulan</h2></div>
+          <a href="#" class="more">Lihat semua
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 12h13M13 6l6 6-6 6"/></svg>
+          </a>
+        </div>
+        <div class="cards">
+          <div class="card"><div class="img"><span class="pill">Terlaris</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M4 8h12v6a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4V8Z"/><path d="M16 9h1.5a2.5 2.5 0 0 1 0 5H16"/></svg></div><div class="body"><span class="cat">Kopi</span><span class="name">Kopi Susu Aren</span><span class="price">Rp 20.000</span></div></div>
+          <div class="card"><div class="img"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M4 8h12v6a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4V8Z"/><path d="M16 9h1.5a2.5 2.5 0 0 1 0 5H16"/></svg></div><div class="body"><span class="cat">Kopi</span><span class="name">Single Origin V60</span><span class="price">Rp 25.000</span></div></div>
+          <div class="card"><div class="img"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M4 8h12v6a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4V8Z"/><path d="M16 9h1.5a2.5 2.5 0 0 1 0 5H16"/></svg></div><div class="body"><span class="cat">Kopi</span><span class="name">Americano</span><span class="price">Rp 18.000</span></div></div>
+          <div class="card"><div class="img"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M4 8h12v6a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4V8Z"/><path d="M16 9h1.5a2.5 2.5 0 0 1 0 5H16"/></svg></div><div class="body"><span class="cat">Kopi</span><span class="name">Caramel Macchiato</span><span class="price">Rp 24.000</span></div></div>
+        </div>
+      </div>
+
+      <div class="story">
+        <div class="story-in">
+          <div>
+            <div class="kicker" style="font-size:12.5px;font-weight:700;color:var(--pri);letter-spacing:.08em;text-transform:uppercase">Cerita kami</div>
+            <h2>Ruang nyaman untuk setiap cerita.</h2>
+            <p>Kami percaya kopi yang baik tidak harus mahal. Rajahemat Cafe hadir menemani hari Anda dengan minuman berkualitas, makanan lezat, dan suasana yang hangat.</p>
+            <a href="#" class="more" style="margin-top:20px">Kenal lebih dekat
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 12h13M13 6l6 6-6 6"/></svg>
+            </a>
+          </div>
+          <div class="promo">
+            <h3>Ayo ngopi hari ini</h3>
+            <p>Daftar sebagai member, pesan dari meja, dan nikmati pengalaman terbaik di Rajahemat Cafe.</p>
+            <a href="#" class="btn btn-p">Daftar &amp; Pesan</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="foot">
+        <div class="foot-in">
+          <div><h4>Rajahemat Cafe</h4><p>Ngopi Hemat, Rasa Nikmat</p><p style="margin-top:10px">Tempat ngopi nyaman dengan rasa nikmat dan harga bersahabat.</p></div>
+          <div><b>Navigasi</b><a href="#">Daftar Menu</a><br><a href="#">Blog</a><br><a href="#">Tentang Kami</a><br><a href="#">Kontak</a></div>
+          <div><b>Hubungi Kami</b><p>Jl. Raya Kopi No. 12<br>Buka 08.00–22.00<br>WhatsApp · Instagram</p></div>
+        </div>
+        <div class="lic"><span>© 2026 Rajahemat Cafe</span><span>Kebijakan Privasi · Syarat Layanan</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== OPTION B ========== -->
+  <div class="opt-head">
+    <div class="num" style="background:#27272A">B</div>
+    <h2>Contemporary Fast-Casual &amp; Neo-Bistro <span>Bone white + amber · Karla saja · sudut 4–6px · grid garis tegas</span></h2>
+  </div>
+
+  <div class="frame">
+    <div class="browser-bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">rajahemat.test/</span></div>
+    <div class="B">
+      <div class="top">
+        <div class="brand">
+          <span class="mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 8h12v6a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4V8Z"/><path d="M16 9h1.5a2.5 2.5 0 0 1 0 5H16"/></svg></span>
+          <b>RAJAHHEMAT</b>
+        </div>
+        <nav><a href="#" class="on">Menu</a><a href="#">Tentang</a><a href="#">Blog</a><a href="#">Kontak</a></nav>
+        <div class="top-actions">
+          <a href="#" class="link-muted">Masuk</a>
+          <a href="#" class="btn btn-p btn-sm">Pesan</a>
+        </div>
+      </div>
+
+      <div class="hero">
+        <div class="hero-in">
+          <div>
+            <div class="tagrow"><span class="tag hot">Buka sekarang</span><span class="tag">Dine-in · Takeaway</span></div>
+            <h1>Kopi nikmat.<br><mark>Harga bersahabat.</mark></h1>
+            <p class="lead">Pesan langsung dari meja lewat QR. Bayar tunai, QRIS, atau saldo member. Siap dalam ±7 menit.</p>
+            <div class="cta-row">
+              <a href="#" class="btn btn-d">Pesan dari Meja</a>
+              <a href="#" class="btn btn-o">Lihat Menu Lengkap</a>
+            </div>
+            <div class="stats">
+              <div class="stat"><b>18</b><span>MENU AKTIF</span></div>
+              <div class="stat"><b>±7'</b><span>SIAP SAJI</span></div>
+              <div class="stat"><b>4.8</b><span>RATING PELANGGAN</span></div>
+            </div>
+          </div>
+          <div class="hero-vis">
+            <div class="grid-lines"></div>
+            <div class="cap"><b>Best seller</b><b>01</b></div>
+            <div class="cup"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M4 8h12v6a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4V8Z"/><path d="M16 9h1.5a2.5 2.5 0 0 1 0 5H16"/><path d="M6 4.5c.5-.8.5-1.5 0-2.3M10 4.5c.5-.8.5-1.5 0-2.3"/></svg></div>
+            <div class="bar"><b>Kopi Susu Aren</b><span>Rp 20.000</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="feat">
+        <div class="f"><div class="n">01</div><h3>Pesan lewat QR meja</h3><p>Pindai, pilih menu, pesanan langsung ke dapur.</p></div>
+        <div class="f"><div class="n">02</div><h3>Saldo cashless</h3><p>Isi sekali, bayar tanpa uang tunai.</p></div>
+        <div class="f"><div class="n">03</div><h3>Kopi segar tiap hari</h3><p>Diseduh saat dipesan, bukan disimpan lama.</p></div>
+      </div>
+
+      <div class="sec">
+        <div class="sec-head">
+          <h2><span class="sq"></span>Menu Unggulan</h2>
+          <a href="#" class="more">Lihat semua →</a>
+        </div>
+        <div class="cards">
+          <div class="card"><div class="img"><span class="pill">Best</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M4 8h12v6a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4V8Z"/><path d="M16 9h1.5a2.5 2.5 0 0 1 0 5H16"/></svg></div><div class="body"><span class="cat">Kopi</span><span class="name">Kopi Susu Aren</span><div class="foot"><span class="price">Rp 20.000</span><span class="add">+</span></div></div></div>
+          <div class="card"><div class="img"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M4 8h12v6a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4V8Z"/><path d="M16 9h1.5a2.5 2.5 0 0 1 0 5H16"/></svg></div><div class="body"><span class="cat">Kopi</span><span class="name">Single Origin V60</span><div class="foot"><span class="price">Rp 25.000</span><span class="add">+</span></div></div></div>
+          <div class="card"><div class="img"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M4 8h12v6a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4V8Z"/><path d="M16 9h1.5a2.5 2.5 0 0 1 0 5H16"/></svg></div><div class="body"><span class="cat">Kopi</span><span class="name">Americano</span><div class="foot"><span class="price">Rp 18.000</span><span class="add">+</span></div></div></div>
+          <div class="card"><div class="img"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M4 8h12v6a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4V8Z"/><path d="M16 9h1.5a2.5 2.5 0 0 1 0 5H16"/></svg></div><div class="body"><span class="cat">Kopi</span><span class="name">Caramel Macchiato</span><div class="foot"><span class="price">Rp 24.000</span><span class="add">+</span></div></div></div>
+        </div>
+      </div>
+
+      <div class="band">
+        <div class="band-in">
+          <div>
+            <h2>Daftar member, pesan lebih cepat.</h2>
+            <p>Sekali daftar, saldo tersimpan, riwayat pesanan rapi. Gratis, tanpa biaya bulanan.</p>
+          </div>
+          <a href="#" class="btn btn-p">Buat Akun</a>
+        </div>
+      </div>
+
+      <div class="foot">
+        <div class="foot-in">
+          <div><b>Rajahemat</b><p>Ngopi Hemat, Rasa Nikmat</p><p style="margin-top:10px">Tempat ngopi nyaman dengan rasa nikmat dan harga bersahabat.</p></div>
+          <div><b>Navigasi</b><a href="#">Daftar Menu</a><br><a href="#">Blog</a><br><a href="#">Tentang</a><br><a href="#">Kontak</a></div>
+          <div><b>Hubungi</b><p>Jl. Raya Kopi No. 12<br>08.00–22.00</p></div>
+        </div>
+        <div class="lic">© 2026 Rajahemat Cafe</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Comparison -->
+  <div class="cmp">
+    <h2>Ringkasan Perbedaan</h2>
+    <p class="sub">Keduanya memakai data &amp; konten yang sama — perbedaannya murni pada bahasa visual.</p>
+    <table>
+      <thead><tr><th>Aspek</th><th>Opsi A — Artisan</th><th>Opsi B — Fast-Casual</th></tr></thead>
+      <tbody>
+        <tr><td>Palet</td><td><span class="chipA">#FAF7F2</span> krem + <span class="chipA">#8C4518</span> espresso</td><td><span class="chipB">#F8F7F4</span> bone + <span class="chipB">#B45309</span> amber</td></tr>
+        <tr><td>Tipografi</td><td>Playfair Display (judul) + Karla (UI) — kontras serif/sans</td><td>Karla saja — seragam, tegas, utilitarian</td></tr>
+        <tr><td>Sudut &amp; Border</td><td>12px kartu, border hangat tipis, shadow lembut</td><td>4–6px, border 1px tegas, hampir tanpa shadow</td></tr>
+        <tr><td>Hero</td><td>Editorial asimetris + foto bertumpuk &amp; stempel bulat</td><td>Blok gelap grid + stats bar + tag status</td></tr>
+        <tr><td>Kartu menu</td><td>Vertikal, rasio 4:3, nama serif, harga terpisah</td><td>Grid tanpa gap berbagi garis, tombol <b>+</b> inline</td></tr>
+        <tr><td>Kesan</td><td>Hangat, premium, mengajak berlama-lama</td><td>Cepat, modern, langsung transaksi</td></tr>
+        <tr><td>Kecocokan brand</td><td><b>Tinggi</b> — cafe = ruang &amp; suasana</td><td>Sedang — terasa seperti app delivery/POS</td></tr>
+      </tbody>
+    </table>
+    <div class="reco"><b>Rekomendasi: Opsi A.</b> Mempertahankan jiwa kafe &amp; cerita brand (penting untuk blog dan landing), tetap bisa dibuat sepadat Opsi B di halaman POS/KDS lewat mode density terpisah.</div>
+  </div>
+</div>
+</body>
+</html>

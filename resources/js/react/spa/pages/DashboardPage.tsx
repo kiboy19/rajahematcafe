@@ -16,6 +16,7 @@ interface DashboardData {
         opening_float: number;
         status: string;
         opened_at: string;
+        cashier?: { id: number; name: string } | null;
     } | null;
 }
 
@@ -36,9 +37,10 @@ export function DashboardPage({ user }: { user: StaffUser }) {
     }
 
     const { stats, session } = data;
+    const isOwnerOrManager = user.role === 'owner' || user.role === 'manager';
 
     return (
-        <div className="flex flex-col gap-6 max-w-6xl">
+        <div className="flex flex-col gap-6 max-w-7xl w-full">
             <PageHeader
                 title={`Halo, ${user.name}`}
                 subtitle={`Anda masuk sebagai ${user.role_label}. Pilih modul kerja untuk melanjutkan operasional.`}
@@ -62,9 +64,11 @@ export function DashboardPage({ user }: { user: StaffUser }) {
                 <div>
                     <p className="text-xs uppercase tracking-wider text-ink-2 font-bold">Status Sesi Kasir</p>
                     {session ? (
-                        <div className="mt-1 flex items-center gap-2">
+                        <div className="mt-1 flex flex-wrap items-center gap-2">
                             <span className="w-2.5 h-2.5 rounded-full bg-ok inline-block"></span>
-                            <span className="font-semibold text-sm">Sesi kasir aktif (Modal awal: <Money value={session.opening_float} />)</span>
+                            <span className="font-semibold text-sm">
+                                Sesi aktif {session.cashier?.name ? `oleh ${session.cashier.name}` : ''} · Modal awal <Money value={session.opening_float} />
+                            </span>
                         </div>
                     ) : (
                         <div className="mt-1 flex items-center gap-2">
@@ -76,7 +80,7 @@ export function DashboardPage({ user }: { user: StaffUser }) {
 
                 <Link to="/sesi-kasir">
                     <Button variant={session ? 'outline' : 'primary'}>
-                        {session ? 'Kelola Sesi Kasir' : 'Buka Sesi Kasir'}
+                        {session ? (isOwnerOrManager ? 'Pantau Sesi Kasir' : 'Kelola Sesi Kasir') : 'Buka Sesi Kasir'}
                     </Button>
                 </Link>
             </Panel>

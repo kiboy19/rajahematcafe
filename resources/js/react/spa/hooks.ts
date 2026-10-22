@@ -1,6 +1,29 @@
 import { useEffect, useRef, useState } from 'react';
 import { apiRequest, type ApiResult } from '@/react/lib/api';
 
+/** Reveals content once when it enters the viewport; CSS owns the motion. */
+export function useScrollReveal<T extends HTMLElement>(): { current: T | null } {    const ref = useRef<T | null>(null);
+
+    useEffect(() => {
+        const element = ref.current;
+        if (!element || !('IntersectionObserver' in window)) {
+            return;
+        }
+
+        const observer = new IntersectionObserver(([entry]) => {
+            if (entry.isIntersecting) {
+                element.classList.add('motion-fade-up');
+                observer.disconnect();
+            }
+        }, { threshold: 0.12 });
+
+        observer.observe(element);
+        return () => observer.disconnect();
+    }, []);
+
+    return ref;
+}
+
 /**
  * Pemuat data JSON dengan status loading/error dan reload manual.
  * Dipakai semua halaman SPA agar pola fetch konsisten.

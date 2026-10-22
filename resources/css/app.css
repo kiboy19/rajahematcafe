@@ -9,49 +9,147 @@
     --font-sans: 'Karla', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
     --font-display: 'Playfair Display', Georgia, 'Times New Roman', serif;
 
-    --color-bg: #FAF7F0;
+    --color-bg: #FAF7F2;
     --color-surface: #FFFFFF;
-    --color-surface-2: #F5F0E8;
+    --color-surface-2: #F3EDE2;
+    --color-surface-strong: #EADCC8;
     --color-thumb: #EFE6D9;
 
-    --color-ink: #2A1D14;
-    --color-ink-2: #6B5A4A;
+    --color-ink: #241810;
+    --color-ink-2: #635345;
     --color-ink-on-dark: #FFF9F2;
 
-    --color-line: #E7E0D5;
-    --color-line-strong: #D6C9B6;
+    --color-line: #E5DCD0;
+    --color-line-strong: #CBBBA9;
 
-    --color-primary: #A35D2A;
-    --color-primary-hover: #8A4B21;
-    --color-primary-press: #743F1B;
-    --color-accent: #3B2418;
+    --color-primary: #8C4518;
+    --color-primary-hover: #703511;
+    --color-primary-press: #58290D;
+    --color-accent: #3A2116;
 
-    --color-ok: #15803D;
-    --color-ok-bg: #E7F5EC;
-    --color-warn: #B45309;
-    --color-warn-bg: #FDF2E3;
-    --color-info: #1D4ED8;
-    --color-info-bg: #E8EEFE;
-    --color-bad: #B91C1C;
-    --color-bad-bg: #FBE9E9;
+    --color-ok: #166534;
+    --color-ok-bg: #DCFCE7;
+    --color-warn: #9A3412;
+    --color-warn-bg: #FFEDD5;
+    --color-info: #1E40AF;
+    --color-info-bg: #DBEAFE;
+    --color-bad: #991B1B;
+    --color-bad-bg: #FEE2E2;
+
 
     /* KDS dapur: tetap gelap untuk kontras ruang dapur. */
-    --color-kds-bg: #0B0F19;
-    --color-kds-card: #151B2B;
+    --color-kds-bg: #0E131F;
+    --color-kds-card: #161D2E;
     --color-kds-line: #334155;
-    --color-kds-ink: #E2E8F0;
+    --color-kds-ink: #F1F5F9;
     --color-kds-muted: #94A3B8;
 
     --radius-card: 12px;
     --radius-input: 8px;
 
-    --shadow-1: 0 1px 2px rgba(58, 36, 24, .08);
-    --shadow-2: 0 8px 24px rgba(58, 36, 24, .14);
+    --shadow-1: 0 1px 2px rgba(36, 24, 16, .06);
+    --shadow-2: 0 12px 32px rgba(36, 24, 16, .14);
+}
+
+@keyframes motion-fade-up {
+    from {
+        opacity: 0;
+        transform: translateY(12px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes motion-ken-burns {
+    from {
+        transform: scale(1);
+    }
+
+    to {
+        transform: scale(1.03);
+    }
+}
+
+@utility motion-fade-up {
+    animation: motion-fade-up 350ms ease-out both;
+}
+
+@utility motion-stagger {
+    animation-delay: calc(var(--motion-index, 0) * 60ms);
+}
+
+@utility motion-ken-burns {
+    animation: motion-ken-burns 8s ease-out both;
+}
+
+@utility motion-reduced {
+    @media (prefers-reduced-motion: reduce) {
+        animation: none;
+        transform: none;
+    }
 }
 
 @layer base {
-    :focus-visible {
-        outline: 2px solid var(--color-primary);
+    /* Fokus tidak tertutup header sticky saat navigasi hash/anchor. */
+    html {
+        scroll-padding-top: 5rem;
+    }
+
+    /* Mobile-first cards for tables on screens smaller than md (<768px). */
+    @media (max-width: 767px) {
+        table.table-cards thead {
+            display: none;
+        }
+
+        table.table-cards,
+        table.table-cards tbody,
+        table.table-cards tr,
+        table.table-cards td {
+            display: block;
+            width: 100%;
+        }
+
+        table.table-cards tr {
+            margin-bottom: 0.75rem;
+            border-radius: var(--radius-card, 12px);
+            border: 1px solid var(--color-line);
+            background: var(--color-surface);
+            padding: 0.5rem 0.75rem;
+            box-shadow: var(--shadow-1);
+        }
+
+        table.table-cards td {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.35rem 0;
+            border-bottom: 1px dashed var(--color-line);
+            text-align: right;
+            font-size: 0.8125rem;
+        }
+
+        table.table-cards td:last-child {
+            border-bottom: none;
+            padding-top: 0.5rem;
+        }
+
+        table.table-cards td[data-label]::before {
+            content: attr(data-label);
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.6875rem;
+            letter-spacing: 0.05em;
+            color: var(--color-ink-2);
+            text-align: left;
+            padding-right: 0.75rem;
+            flex-shrink: 0;
+        }
+    }
+
+    :focus-visible {        outline: 2px solid var(--color-primary);
         outline-offset: 2px;
     }
 

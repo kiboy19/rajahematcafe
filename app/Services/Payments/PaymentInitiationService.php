@@ -2,6 +2,8 @@
 
 namespace App\Services\Payments;
 
+use App\Enums\GatewayResultToken;
+use App\Enums\OrderStatus;
 use App\Models\GatewayTransaction;
 use App\Models\Order;
 use App\Models\WalletTopUp;
@@ -10,9 +12,9 @@ use App\Payments\Environment\FailClosedGuard;
 use App\Payments\Midtrans\MidtransClient;
 use App\Payments\Midtrans\SnapRequest;
 use App\Payments\Midtrans\SnapTokenResponse;
+use App\Services\MidtransGatewayService;
 use App\Support\Clock;
 use Illuminate\Support\Facades\DB;
-use RuntimeException;
 use Throwable;
 
 /**
@@ -171,7 +173,7 @@ class PaymentInitiationService
                 false,
                 null,
                 null,
-                \App\Enums\GatewayResultToken::ProviderUnavailable,
+                GatewayResultToken::ProviderUnavailable,
                 0,
                 [],
                 $exception->getMessage(),
@@ -198,7 +200,7 @@ class PaymentInitiationService
     private function assertPayable(Order|WalletTopUp $entity, string $type): void
     {
         if ($type === GatewayTransaction::TYPE_PAYMENT) {
-            $statusValue = $entity->status instanceof \App\Enums\OrderStatus
+            $statusValue = $entity->status instanceof OrderStatus
                 ? $entity->status->value
                 : (string) $entity->status;
 
@@ -247,12 +249,23 @@ class PaymentInitiationService
         }
 
         if ($entity instanceof Order) {
-            $details['item_details'] = $entity->items->map(fn ($item): array => [
-                'id' => (string) $item->id,
-                'price' => (int) $item->unit_price,
-                'quantity' => (int) $item->quantity,
-                'name' => $item->name,
-            ])->values()->all();
+            $itemDetails = MidtransGatewayService::orderItemDetails($entity, (int) $gatewayTransaction->gross_amount);
+
+            if ($itemDetails !== null) {
+                $details['item_details'] = $itemDetails;
+            }
+
+            $details['callbacks'] = [
+                'finish' => url('/akun/pesanan/'.$entity->id),
+                'unfinish' => url('/akun/pesanan/'.$entity->id.'/bayar'),
+                'error' => url('/akun/pesanan/'.$entity->id.'/bayar?error=1'),
+            ];
+        } else {
+            $details['callbacks'] = [
+                'finish' => url('/akun?topup=finish'),
+                'unfinish' => url('/akun/saldo'),
+                'error' => url('/akun/saldo?error=1'),
+            ];
         }
 
         return $details;

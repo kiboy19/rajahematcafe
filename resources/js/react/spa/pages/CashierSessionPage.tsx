@@ -1,35 +1,63 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useResource } from '../hooks';
 import { mutate, useFlash } from '../hooks';
-import { Button, ErrorBox, Field, inputClass, Loading, Money, Panel } from '../ui';
+import { Button, ConfirmDialog, ErrorBox, Field, inputClass, Loading, Money, PageHeader, Panel, QuickAmountChips } from '../ui';
+import type { StaffUser } from '../session';
+
+interface SessionSummary {
+    id: number;
+    opening_float: number;
+    expected_cash?: number | null;
+    status: 'open' | 'closed';
+    opened_at: string;
+    closed_at?: string;
+    variance?: number;
+    closing_note?: string | null;
+    cashier?: { id: number; name: string } | null;
+}
 
 interface CashierSessionData {
-    session?: {
-        id: number;
-        opening_float: number;
-        expected_cash: number;
-        status: 'open' | 'closed';
-        opened_at: string;
-        closed_at?: string;
-        variance?: number;
-        closing_note?: string | null;
-    } | null;
+    session: SessionSummary | null;
     cashSales: number;
     cashTopups: number;
     paymentCount: number;
+    active_session: SessionSummary | null;
+    can_open: boolean;
+    can_close: boolean;
+    can_force_close: boolean;
 }
 
-export function CashierSessionPage() {
+function elapsedLabel(from: string): string {
+    const minutes = Math.max(0, Math.round((Date.now() - new Date(from).getTime()) / 60000));
+    if (minutes < 60) {
+        return `${minutes} mnt`;
+    }
+
+    return `${Math.floor(minutes / 60)} j ${minutes % 60} mnt`;
+}
+
+function openedTime(from: string): string {
+    return new Date(from).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+}
+
+interface ClosureForm {
+    sessionId: number;
+    expected: number;
+    force: boolean;
+}
+
+const floatPresets = [100000, 200000, 300000, 500000];
+
+export function CashierSessionPage({ user }: { user: StaffUser }) {
     const { data, loading, error, reload } = useResource<CashierSessionData>('/api/sesi-kasir');
-    const { message, flashSuccess, flashError } = useFlash();
+    const { flashSuccess, flashError } = useFlash();
 
     const [openingFloat, setOpeningFloat] = useState('');
     const [countedCash, setCountedCash] = useState('');
     const [closingNote, setClosingNote] = useState('');
-    const [action, setAction] = useState<'open' | 'close' | null>(null);
     const [busy, setBusy] = useState(false);
-
-    const session = data?.session;
+    const [confirm, setConfirm] = useState<ClosureForm | null>(null);
 
     if (loading) {
         return <Loading label="Memuat sesi kasir..." />;
@@ -38,6 +66,9 @@ export function CashierSessionPage() {
     if (error || !data) {
         return <ErrorBox message={error ?? 'Gagal memuat data sesi kasir.'} />;
     }
+
+    const isMonitorOnly = (user.role === 'owner' || user.role === 'manager') && !data.can_close;
+    const display = data.session ?? data.active_session;
 
     const openSession = async () => {
         if (!openingFloat) {
@@ -58,14 +89,17 @@ export function CashierSessionPage() {
         reload();
     };
 
-    const closeSession = async () => {
+    const closeSession = async ({ sessionId, force }: ClosureForm) => {
         if (!countedCash) {
             flashError('Masukkan uang laci terhitung.');
             return;
         }
 
         setBusy(true);
-        const result = await mutate('POST', '/api/sesi-kasir/tutup', { counted_cash: Number(countedCash), closing_note: closingNote.trim() || undefined });
+        const body = { counted_cash: Number(countedCash), closing_note: closingNote.trim() || undefined };
+        const result = force
+            ? await mutate('POST', `/api/sesi-kasir/${sessionId}/tutup-paksa`, { ...body, closing_note: closingNote.trim() })
+            : await mutate('POST', '/api/sesi-kasir/tutup', body);
         setBusy(false);
 
         if (!result.ok) {
@@ -73,85 +107,223 @@ export function CashierSessionPage() {
             return;
         }
 
-        flashSuccess('Sesi kasir ditutup.');
+        flashSuccess(result.message ?? 'Sesi kasir ditutup.');
+        setCountedCash('');
+        setClosingNote('');
         reload();
     };
 
-    const variance = session ? Number(countedCash || 0) - (session.opening_float + data.cashSales - data.cashTopups) : 0;
-    const expectedCash = session ? session.opening_float + data.cashSales - data.cashTopups : 0;
+    const expectedCash = (target: SessionSummary | null | undefined) => target
+        ? target.opening_float + data.cashSales - data.cashTopups
+        : 0;
+    const expectedFor = display?.id === data.session?.id
+        ? data.session?.opening_float + data.cashSales - data.cashTopups
+        : display?.expected_cash ?? null;
+    const variance = display && countedCash !== '' ? Number(countedCash) - (expectedFor ?? 0) : 0;
+    const hasVariance = countedCash !== '' && variance !== 0;
 
     return (
-        <div className="max-w-2xl flex flex-col gap-5">
-            <h1 className="font-display text-2xl font-bold">Sesi Kasir</h1>
+        <div className="flex flex-col gap-5 max-w-7xl w-full">
+            <PageHeader
+                title="Sesi Kasir"
+                subtitle={isMonitorOnly ? 'Pemantauan sesi kasir yang sedang berjalan.' : 'Rekap uang laci dan penutupan operasional kasir.'}
+                actions={
+                    display ? (
+                        <span className="inline-flex items-center gap-2 rounded-full bg-ok-bg px-3 py-1.5 text-xs font-semibold text-ok">
+                            <span aria-hidden="true" className="h-2 w-2 rounded-full bg-ok" />
+                            Sesi terbuka · sejak {openedTime(display.opened_at)} ({elapsedLabel(display.opened_at)})
+                        </span>
+                    ) : (
+                        <span className="inline-flex items-center gap-2 rounded-full bg-warn-bg px-3 py-1.5 text-xs font-semibold text-warn">
+                            <span aria-hidden="true" className="h-2 w-2 rounded-full bg-warn" />
+                            Belum ada sesi terbuka
+                        </span>
+                    )
+                }
+            />
 
-            {session ? (
-                <>
-                    <Panel className="p-5 flex flex-col gap-4">
-                        <div className="grid gap-4 sm:grid-cols-2">
-                            <div className="bg-surface-2 rounded-input p-4">
-                                <p className="text-xs text-ink-2 font-semibold">Modal Awal</p>
-                                <Money value={session.opening_float} className="mt-1 font-display text-2xl font-bold tabular" />
+            {display ? (
+                <div className="grid gap-5 lg:grid-cols-[1.55fr_1fr] items-start">
+                    <div className="flex flex-col gap-5">
+                        <Panel className="p-5">
+                            <div className="flex flex-wrap items-start justify-between gap-3">
+                                <div>
+                                    <p className="text-xs font-semibold uppercase tracking-wider text-ink-2">Kasir sesi ini</p>
+                                    <p className="mt-1 font-display text-2xl font-bold">{display.cashier?.name ?? user.name}</p>
+                                    <p className="text-xs text-ink-2">
+                                        Dibuka {openedTime(display.opened_at)} · {elapsedLabel(display.opened_at)} berjalan
+                                    </p>
+                                </div>
+                                {isMonitorOnly && (
+                                    <span className="rounded-full border border-line bg-surface-2 px-3 py-1 text-xs font-semibold text-ink-2">
+                                        Mode pantau
+                                    </span>
+                                )}
                             </div>
-                            <div className="bg-surface-2 rounded-input p-4">
-                                <p className="text-xs text-ink-2 font-semibold">Jumlah Pesanan</p>
-                                <p className="mt-1 font-display text-2xl font-bold tabular">{data.paymentCount}</p>
-                            </div>
-                            <div className="bg-surface-2 rounded-input p-4">
-                                <p className="text-xs text-ink-2 font-semibold">Penjualan Tunai</p>
-                                <Money value={data.cashSales} className="mt-1 font-display text-2xl font-bold tabular" />
-                            </div>
-                            <div className="bg-surface-2 rounded-input p-4">
-                                <p className="text-xs text-ink-2 font-semibold">Top-Up Saldo</p>
-                                <Money value={data.cashTopups} className="mt-1 font-display text-2xl font-bold tabular" />
-                            </div>
+                        </Panel>
+
+                        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                            <Panel className="p-4">
+                                <p className="text-xs font-semibold uppercase tracking-wider text-ink-2">Modal Awal</p>
+                                <Money value={display.opening_float} className="mt-2 block font-display text-xl font-bold" />
+                            </Panel>
+                            <Panel className="p-4">
+                                <p className="text-xs font-semibold uppercase tracking-wider text-ink-2">Penjualan Tunai</p>
+                                <Money value={data.cashSales} className="mt-2 block font-display text-xl font-bold text-ok" />
+                            </Panel>
+                            <Panel className="p-4">
+                                <p className="text-xs font-semibold uppercase tracking-wider text-ink-2">Top-Up Saldo</p>
+                                <Money value={data.cashTopups} className="mt-2 block font-display text-xl font-bold text-bad" />
+                            </Panel>
+                            <Panel className="p-4">
+                                <p className="text-xs font-semibold uppercase tracking-wider text-ink-2">Jumlah Pesanan</p>
+                                <p className="mt-2 font-display text-xl font-bold tabular">{data.paymentCount}</p>
+                            </Panel>
                         </div>
 
-                        <div className="pt-4 border-t border-line">
-                            <h3 className="font-semibold text-sm mb-2">Ringkasan Uang Laci</h3>
-                            <div className="space-y-2 text-sm">
-                                <div className="flex justify-between"><span>Modal Awal</span><Money value={session.opening_float} className="tabular" /></div>
-                                <div className="flex justify-between"><span>Penjualan Tunai (+)</span><Money value={data.cashSales} className="tabular text-ok" /></div>
-                                <div className="flex justify-between text-bad"><span>Top-Up Saldo (−)</span><Money value={data.cashTopups} className="tabular" /></div>
-                                <div className="flex justify-between font-bold pt-2 border-t border-line"><span>Diperlukan di Laci</span><Money value={expectedCash} className="tabular" /></div>
+                        <Panel className="p-5">
+                            <h3 className="text-sm font-semibold">Ringkasan Uang Laci</h3>
+                            <div className="mt-3 space-y-2 text-sm">
+                                <div className="flex justify-between"><span className="text-ink-2">Modal Awal</span><Money value={display.opening_float} /></div>
+                                <div className="flex justify-between"><span className="text-ink-2">Penjualan Tunai (+)</span><Money value={data.cashSales} className="text-ok" /></div>
+                                <div className="flex justify-between"><span className="text-ink-2">Top-Up Saldo (−)</span><Money value={data.cashTopups} className="text-bad" /></div>
                             </div>
-                        </div>
+                            <div className="mt-3 flex items-baseline justify-between border-t border-line pt-3">
+                                <span className="text-sm font-semibold">Uang di laci seharusnya</span>
+                                <Money value={expectedFor ?? expectedCash(display)} className="font-display text-2xl font-bold text-primary" />
+                            </div>
+                        </Panel>
 
-                        {session.variance !== undefined && session.variance !== 0 && (
-                            <div className={`p-3 rounded-input ${session.variance < 0 ? 'bg-bad-bg border border-bad/20 text-bad' : 'bg-ok-bg border border-ok/20 text-ok'}`}>
-                                <p className="font-semibold">Selisih Kas: <Money value={Math.abs(session.variance)} /></p>
-                                <p className="text-xs mt-1">{session.closing_note ?? 'Tidak ada catatan.'}</p>
-                            </div>
+                        {display.variance !== undefined && display.variance !== 0 && (
+                            <Panel className={`p-4 ${display.variance < 0 ? 'border-bad/30 bg-bad-bg text-bad' : 'border-ok/30 bg-ok-bg text-ok'}`}>
+                                <p className="font-semibold text-sm">
+                                    Selisih kas tercatat: <Money value={Math.abs(display.variance)} className="font-bold" />
+                                </p>
+                                <p className="mt-1 text-xs">{display.closing_note ?? 'Tanpa catatan.'}</p>
+                            </Panel>
                         )}
-
-                        <div className="pt-4 border-t border-line">
-                            <h3 className="font-semibold text-sm mb-2">Tutup Sesi Kasir</h3>
-                            <div className="grid gap-3 sm:grid-cols-2">
-                                <Field label="Uang Laci Terhitung (Rp)">
-                                    <input className={inputClass} type="number" min={0} placeholder="0" value={countedCash} onChange={(event) => setCountedCash(event.target.value)} />
-                                </Field>
-                                <Field label="Catatan (wajib jika ada selisih)">
-                                    <input className={inputClass} placeholder="Contoh: kurang 5000" value={closingNote} onChange={(event) => setClosingNote(event.target.value)} />
-                                </Field>
-                            </div>
-                            <Button className="w-full h-11" onClick={closeSession} disabled={busy || !countedCash}>
-                                Tutup Sesi Kasir
-                            </Button>
-                        </div>
-                    </Panel>
-                </>
-            ) : (
-                <Panel className="p-5 flex flex-col gap-4">
-                    <p className="text-sm text-ink-2">Belum ada sesi kasir yang terbuka. Buka sesi untuk memulai operasional hari ini.</p>
-                    <div className="max-w-sm">
-                        <Field label="Modal Awal (Rp)">
-                            <input className={inputClass} type="number" min={0} placeholder="0" value={openingFloat} onChange={(event) => setOpeningFloat(event.target.value)} autoFocus />
-                        </Field>
-                        <Button className="w-full h-11 mt-2" onClick={openSession} disabled={busy || !openingFloat}>
-                            Buka Sesi Kasir
-                        </Button>
                     </div>
-                </Panel>
+
+                    <div className="flex flex-col gap-5">
+                        {data.can_close || data.can_force_close ? (
+                            <Panel className="p-5 flex flex-col gap-4 border-bad/30">
+                                <div>
+                                    <h3 className="font-display text-lg font-bold">{data.can_force_close ? 'Tutup Paksa Kas' : 'Tutup Kas'}</h3>
+                                    <p className="mt-1 text-xs text-ink-2">
+                                        {data.can_force_close
+                                            ? `Anda menutup sesi milik ${display.cashier?.name ?? 'kasir lain'}. Tindakan ini dicatat di audit log dan tidak dapat dibatalkan.`
+                                            : 'Hitung uang fisik di laci, lalu masukkan jumlahnya. Tindakan ini tidak dapat dibatalkan.'}
+                                    </p>
+                                </div>
+
+                                <Field label="Uang Laci Terhitung (Rp)">
+                                    <input
+                                        className={inputClass}
+                                        type="number"
+                                        min={0}
+                                        inputMode="numeric"
+                                        step={1000}
+                                        placeholder="0"
+                                        value={countedCash}
+                                        onChange={(event) => setCountedCash(event.target.value)}
+                                    />
+                                </Field>
+                                <Field
+                                    label="Catatan"
+                                    hint={data.can_force_close ? 'Wajib: alasan penutupan paksa.' : hasVariance ? 'Wajib diisi jika ada selisih.' : 'Opsional.'}
+                                >
+                                    <input
+                                        className={inputClass}
+                                        maxLength={255}
+                                        placeholder={data.can_force_close ? 'Contoh: kasir pulang lebih awal' : 'Contoh: kurang 5000'}
+                                        value={closingNote}
+                                        onChange={(event) => setClosingNote(event.target.value)}
+                                    />
+                                </Field>
+
+                                {countedCash !== '' && (
+                                    <div className={`rounded-input border p-3 text-sm ${hasVariance ? (variance < 0 ? 'border-bad/20 bg-bad-bg text-bad' : 'border-ok/20 bg-ok-bg text-ok') : 'border-line bg-surface-2 text-ink-2'}`} role="status">
+                                        Selisih: {variance > 0 ? '+' : variance < 0 ? '−' : ''}<Money value={Math.abs(variance)} className="font-semibold" />
+                                        {!hasVariance && ' (pas)'}
+                                    </div>
+                                )}
+
+                                <Button
+                                    variant="danger"
+                                    className="h-11 w-full"
+                                    onClick={() => setConfirm({ sessionId: display.id, expected: expectedFor ?? 0, force: data.can_force_close })}
+                                    disabled={busy || !countedCash || (!data.can_force_close && hasVariance && !closingNote.trim()) || (data.can_force_close && !closingNote.trim())}
+                                >
+                                    {data.can_force_close ? 'Tutup Paksa Sesi Kasir' : 'Tutup Sesi Kasir'}
+                                </Button>
+                                {countedCash !== '' && hasVariance && !closingNote.trim() && (
+                                    <p className="text-xs text-bad">Isi catatan untuk menjelaskan selisih kas.</p>
+                                )}
+                            </Panel>
+                        ) : (
+                            <Panel className="p-5 flex flex-col gap-3">
+                                <h3 className="text-sm font-semibold">Pemantauan</h3>
+                                <p className="text-xs text-ink-2">
+                                    Sesi kasir ini dikelola oleh {display.cashier?.name ?? 'kasir'}. Anda memantau operasional tanpa mengubah transaksi sesi.
+                                </p>
+                                <Link to="/laporan/harian" className="text-xs font-semibold text-primary hover:underline">
+                                    Lihat laporan harian →
+                                </Link>
+                            </Panel>
+                        )}
+                    </div>
+                </div>
+            ) : (
+                <div className="grid gap-5 lg:grid-cols-[1.55fr_1fr] items-start">
+                    <Panel className="p-5">
+                        <h3 className="text-sm font-semibold">Belum ada sesi kasir terbuka</h3>
+                        <p className="mt-1 text-xs text-ink-2">
+                            Kasir membuka sesi sebelum menerima pembayaran tunai atau top-up. Pembayaran non-tunai tetap dapat diproses tanpa sesi.
+                        </p>
+                    </Panel>
+
+                    {data.can_open ? (
+                        <Panel className="p-5 flex flex-col gap-3">
+                            <h3 className="font-display text-lg font-bold">Buka Sesi</h3>
+                            <QuickAmountChips amounts={floatPresets} value={openingFloat} onChange={setOpeningFloat} />
+                            <Field label="Modal Awal (Rp)">
+                                <input
+                                    className={inputClass}
+                                    type="number"
+                                    min={0}
+                                    inputMode="numeric"
+                                    placeholder="0"
+                                    value={openingFloat}
+                                    onChange={(event) => setOpeningFloat(event.target.value)}
+                                />
+                            </Field>
+                            <Button className="h-11 w-full" onClick={openSession} disabled={busy || !openingFloat}>
+                                Buka Sesi Kasir
+                            </Button>
+                        </Panel>
+                    ) : (
+                        <Panel className="p-5">
+                            <p className="text-xs text-ink-2">Sesi kasir dibuka oleh kasir yang bertugas.</p>
+                        </Panel>
+                    )}
+                </div>
             )}
+
+            <ConfirmDialog
+                open={confirm !== null}
+                onOpenChange={(open) => !open && setConfirm(null)}
+                title={confirm?.force ? 'Tutup paksa sesi kasir?' : 'Tutup sesi kasir?'}
+                description={
+                    <>
+                        Uang laci terhitung <Money value={countedCash} className="font-semibold" /> dengan selisih{' '}
+                        <Money value={Math.abs(variance)} className="font-semibold" />.
+                        {confirm?.force && ` Sesi milik ${display?.cashier?.name ?? 'kasir'} akan ditutup dan tercatat di audit log.`}
+                        {' '}Setelah ditutup, sesi tidak dapat dibuka kembali.
+                    </>
+                }
+                confirmText={confirm?.force ? 'Ya, tutup paksa' : 'Ya, tutup sesi'}
+                onConfirm={() => confirm && closeSession(confirm)}
+            />
         </div>
     );
 }

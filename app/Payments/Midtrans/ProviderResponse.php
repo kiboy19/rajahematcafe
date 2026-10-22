@@ -1,5 +1,9 @@
 <?php
+
 namespace App\Payments\Midtrans;
+
+use App\Enums\GatewayResultToken;
+
 readonly class ProviderResponse
 {
     public function __construct(

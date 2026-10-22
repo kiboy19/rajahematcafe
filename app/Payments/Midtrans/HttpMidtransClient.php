@@ -131,19 +131,19 @@ final class HttpMidtransClient implements MidtransClient
 
     private function isRetryable(ProviderResponse $response): bool
     {
-        if ($response->errorType === ProviderErrorType::ProviderMalformed) {
+        if ($response->errorType === GatewayResultToken::ProviderMalformed) {
             return false;
         }
 
-        if ($response->errorType === ProviderErrorType::ProviderRejected) {
+        if ($response->errorType === GatewayResultToken::ProviderRejected) {
             return false;
         }
 
-        if ($response->errorType === ProviderErrorType::ProviderTimeout) {
+        if ($response->errorType === GatewayResultToken::ProviderTimeout) {
             return true;
         }
 
-        if ($response->errorType === ProviderErrorType::ProviderUnavailable) {
+        if ($response->errorType === GatewayResultToken::ProviderUnavailable) {
             return $response->httpStatus >= 500
                 || in_array($response->httpStatus, self::RETRYABLE_STATUS, true)
                 || $response->httpStatus === 0;
@@ -212,15 +212,16 @@ final class HttpMidtransClient implements MidtransClient
     {
         $status = $response->getStatusCode();
         $body = (string) $response->getBody();
+        $dtoClass = $this->dtoClassFor($operation);
 
         if ($status >= 400) {
-            return $this->httpError(ProviderResponse::class, $status, $body);
+            return $this->httpError($dtoClass, $status, $body);
         }
 
         try {
             $payload = $this->json($body);
         } catch (MalformedProviderPayloadException) {
-            return $this->error(ProviderResponse::class, ProviderErrorType::ProviderMalformed, $status, $body);
+            return $this->error($dtoClass, ProviderErrorType::ProviderMalformed, $status, $body);
         }
 
         return match ($operation) {
@@ -251,6 +252,21 @@ final class HttpMidtransClient implements MidtransClient
         };
     }
 
+    /**
+     * DTO yang sesuai untuk tiap operasi; dipakai agar error terklasifikasi
+     * tidak pernah kembali sebagai tipe respons yang salah.
+     *
+     * @return class-string<ProviderResponse>
+     */
+    private function dtoClassFor(string $operation): string
+    {
+        return match ($operation) {
+            'create_snap' => SnapTokenResponse::class,
+            'fetch_status' => GatewayStatusResponse::class,
+            default => RefundResponse::class,
+        };
+    }
+
     private function error(string $dtoClass, ProviderErrorType $type, int $status, string $message): ProviderResponse
     {
         $token = match ($type) {
@@ -260,10 +276,13 @@ final class HttpMidtransClient implements MidtransClient
             ProviderErrorType::ProviderMalformed => GatewayResultToken::ProviderMalformed,
         };
 
+        $errorType = $token;
+
         return match ($dtoClass) {
-            SnapTokenResponse::class => new SnapTokenResponse(false, null, null, $token, $status, [], $message),
-            GatewayStatusResponse::class => new GatewayStatusResponse(false, '', null, null, $token, $status, [], $message),
-            default => new RefundResponse(false, null, $token, $status, [], $message),
+            SnapTokenResponse::class => new SnapTokenResponse(false, null, null, $errorType, $status, [], $message),
+            GatewayStatusResponse::class => new GatewayStatusResponse(false, '', null, null, $errorType, $status, [], $message),
+            RefundResponse::class => new RefundResponse(false, null, $errorType, $status, [], $message),
+            default => throw new \InvalidArgumentException("Unknown DTO class {$dtoClass}"),
         };
     }
 

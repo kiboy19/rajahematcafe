@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\UserRole;
 use App\Models\CashierSession;
 use App\Models\Order;
 use App\Models\Payment;
@@ -29,6 +30,15 @@ class DashboardController extends Controller
             ->count();
 
         $session = CashierSession::openFor($user);
+        $active = CashierSession::active();
+
+        $sessionData = null;
+        if ($user->role === UserRole::Kasir) {
+            $sessionData = $session;
+        } elseif ($active) {
+            $sessionData = $active->load('cashier')->only(['id', 'status', 'opened_at', 'opening_float']);
+            $sessionData['cashier'] = $active->cashier?->only(['id', 'name']);
+        }
 
         return response()->json([
             'data' => [
@@ -48,7 +58,7 @@ class DashboardController extends Controller
                         ->whereDate('paid_at', today())
                         ->sum('amount'),
                 ],
-                'session' => $session,
+                'session' => $sessionData,
             ],
         ]);
     }

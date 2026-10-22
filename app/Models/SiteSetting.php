@@ -27,14 +27,18 @@ class SiteSetting extends Model
         return $this->belongsTo(User::class, 'updated_by');
     }
 
-    public function logoUrl(): ?string
+    public function logoUrl(): string
     {
-        return $this->logo_path ? Storage::disk('public')->url($this->logo_path) : null;
+        return $this->logo_path
+            ? Storage::disk('public')->url($this->logo_path)
+            : asset('images/logo.svg');
     }
 
-    public function faviconUrl(): ?string
+    public function faviconUrl(): string
     {
-        return $this->favicon_path ? Storage::disk('public')->url($this->favicon_path) : null;
+        return $this->favicon_path
+            ? Storage::disk('public')->url($this->favicon_path)
+            : asset('favicon.svg');
     }
 
     /**

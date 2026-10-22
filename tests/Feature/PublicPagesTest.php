@@ -98,14 +98,18 @@ class PublicPagesTest extends TestCase
             ->assertJsonPath('data.groups.0.items.0.name', 'Americano');
     }
 
-    public function test_landing_page_mengarahkan_cta_pesan_sekarang_ke_halaman_daftar(): void
+    public function test_landing_page_cta_mengikuti_design_system(): void
     {
         $source = file_get_contents(resource_path('js/react/spa/pages/PublicPages.tsx'));
 
-        // CTA utama mengarah ke /daftar dengan return_to menu agar tamu
-        // langsung diarahkan ke pemesanan setelah mendaftar.
-        $this->assertStringContainsString('/daftar?return_to=%2Fmeja', $source);
-        $this->assertStringContainsString('to={REGISTER_CTA}', $source);
+        // Header CTA ke /daftar-menu, bukan registrasi langsung
+        $this->assertStringContainsString('to="/daftar-menu"', $source);
+        $this->assertStringContainsString('Jelajahi Menu', $source);
+        // Hero CTA outline ke daftar-menu + anchor ke #kenali-kami
+        $this->assertStringContainsString('href="#kenali-kami"', $source);
+        $this->assertStringContainsString('Kenali kami', $source);
+        // Menu section QR note informatif
+        $this->assertStringContainsString('Sedang duduk di cafe', $source);
     }
 
     public function test_registrasi_mengarah_ke_return_to_yang_diminta(): void

@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { BarChart3, Loader2, Users, Eye, Monitor, Smartphone, Tablet } from 'lucide-react';
 import { apiRequest } from '@/react/lib/api';
-import { Button } from '@/react/components/ui/button';
+import { Button } from '../../spa/ui-primitives';
 
 interface AnalyticsPayload {
     range_days: number;

@@ -143,3 +143,103 @@ export function Toast({ message }: { message: { text: string; tone: 'success' | 
         </div>
     );
 }
+
+export function ConfirmDialog({
+    open,
+    onOpenChange,
+    title,
+    description,
+    confirmText = 'Lanjutkan',
+    cancelText = 'Batal',
+    variant: _variant = 'danger',
+    onConfirm,
+}: {
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+    title: string;
+    description: ReactNode;
+    confirmText?: string;
+    cancelText?: string;
+    variant?: 'primary' | 'danger';
+    onConfirm: () => void;
+}) {
+    if (!open) return null;
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
+            <Panel className="w-full max-w-md p-6">
+                <h3 id="confirm-title" className="font-display text-lg font-bold">{title}</h3>
+                <p className="mt-3 text-sm text-ink-2">{description}</p>
+                <div className="mt-5 flex justify-end gap-3">
+                    <Button variant="ghost" onClick={() => onOpenChange(false)}>{cancelText}</Button>
+                    <Button variant={_variant} onClick={() => { onConfirm(); onOpenChange(false); }}>
+                        {confirmText}
+                    </Button>
+                </div>
+            </Panel>
+        </div>
+    );
+}
+
+export function SegmentedTabs({
+    value,
+    onChange,
+    options,
+    className,
+}: {
+    value: string;
+    onChange: (value: string) => void;
+    options: Array<{ value: string; label: string }>;
+    className?: string;
+}) {
+    return (
+        <div className={cn('inline-flex rounded-input bg-surface-2 p-1', className)} role="tablist" aria-label="Filter status">
+            {options.map((opt) => (
+                <button
+                    key={opt.value}
+                    role="tab"
+                    aria-selected={value === opt.value}
+                    onClick={() => onChange(opt.value)}
+                    className={cn(
+                        'px-3 py-1.5 text-xs font-semibold rounded-[inherit] transition-colors',
+                        value === opt.value ? 'bg-surface text-ink shadow-1' : 'text-ink-2 hover:text-ink'
+                    )}
+                >
+                    {opt.label}
+                </button>
+            ))}
+        </div>
+    );
+}
+
+export function QuickAmountChips({
+    amounts,
+    value,
+    onChange,
+    className,
+}: {
+    amounts: number[];
+    value: string;
+    onChange: (value: string) => void;
+    className?: string;
+}) {
+    return (
+        <div className={cn('flex flex-wrap gap-2', className)}>
+            {amounts.map((amt) => (
+                <button
+                    key={amt}
+                    type="button"
+                    onClick={() => onChange(String(amt))}
+                    className={cn(
+                        'px-3 py-2 text-sm font-semibold rounded-input border transition-colors',
+                        value === String(amt)
+                            ? 'bg-primary text-white border-primary'
+                            : 'bg-surface border-line hover:bg-surface-2'
+                    )}
+                >
+                    {amt >= 1000 ? `${amt / 1000}rb` : amt}
+                </button>
+            ))}
+        </div>
+    );
+}

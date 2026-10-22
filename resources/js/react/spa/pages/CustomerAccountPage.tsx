@@ -26,7 +26,7 @@ export function CustomerAccountPage({ user }: { user: CustomerUser }) {
             <PageHeader title={`Halo, ${customer.name}`} subtitle="Kelola akun, saldo, dan riwayat pesanan Anda." />
 
             {/* Profil & Saldo */}
-            <div className="rounded-card bg-accent text-ink-on-dark p-5 shadow-1 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="rounded-card bg-accent text-ink-on-dark p-5 shadow-1 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 motion-fade-up">
                 <div>
                     <p className="text-xs uppercase tracking-wider opacity-75 font-bold">Saldo Tersedia</p>
                     <Money value={customer.balance} className="text-3xl font-display font-bold block mt-1" />
@@ -47,7 +47,7 @@ export function CustomerAccountPage({ user }: { user: CustomerUser }) {
             </div>
 
             {/* Riwayat Pesanan */}
-            <Panel className="p-5">
+            <Panel className="p-5 motion-fade-up">
                 <h2 className="font-display text-lg font-bold mb-3">Riwayat Pesanan</h2>
                 {orders.length === 0 ? (
                     <EmptyState title="Belum ada pesanan." hint="Pindai QR meja di kafe untuk mulai memesan." />
@@ -70,7 +70,7 @@ export function CustomerAccountPage({ user }: { user: CustomerUser }) {
             </Panel>
 
             {/* Riwayat Mutasi Saldo */}
-            <Panel className="p-5">
+            <Panel className="p-5 motion-fade-up">
                 <h2 className="font-display text-lg font-bold mb-3">Mutasi Saldo</h2>
                 {transactions.length === 0 ? (
                     <p className="text-xs text-ink-2">Belum ada mutasi saldo.</p>

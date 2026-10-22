@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\UserRole;
 use App\Models\AuditLog;
 use App\Models\CashierSession;
 use App\Models\User;
@@ -16,13 +17,24 @@ class CashierSessionController extends Controller
     public function show(Request $request): JsonResponse
     {
         $user = $request->user();
+        /** @var CashierSession|null $session */
         $session = CashierSession::openFor($user);
+        $active = CashierSession::active();
+
+        $canForceClose = in_array($user->role, [UserRole::Owner, UserRole::Manager], true) && $active !== null;
 
         return response()->json(['data' => [
             'session' => $session,
             'cashSales' => $session?->cashSalesTotal() ?? 0,
             'cashTopups' => $session?->cashTopupsTotal() ?? 0,
             'paymentCount' => $session?->payments()->where('status', 'paid')->count() ?? 0,
+            'active_session' => $active ? $active->only(['id', 'status', 'opened_at', 'opening_float']) + [
+                'cashier' => $active->cashier?->only(['id', 'name']),
+                'expected_cash' => $active->expectedCashTotal(),
+            ] : null,
+            'can_open' => $session === null && $active === null,
+            'can_close' => $session !== null,
+            'can_force_close' => $canForceClose,
         ]]);
     }
 
@@ -34,6 +46,16 @@ class CashierSessionController extends Controller
             }
 
             return back()->withErrors(['opening_float' => 'Sesi kasir Anda masih terbuka. Tutup dulu sebelum membuka sesi baru.']);
+        }
+
+        $active = CashierSession::active();
+        if ($active) {
+            $msg = 'Sesi kasir sedang aktif oleh '.($active->cashier?->name ?? 'kasir lain').'. Tutup sesi tersebut sebelum membuka sesi baru.';
+            if ($request->expectsJson()) {
+                return response()->json(['message' => $msg], 422);
+            }
+
+            return back()->withErrors(['opening_float' => $msg]);
         }
 
         $validated = $request->validate([
@@ -116,6 +138,33 @@ class CashierSessionController extends Controller
         }
 
         return redirect()->route('cashier.session')->with('success', $finalMessage);
+    }
+
+    public function forceClose(Request $request, CashierSession $session, CashierSessionService $service): JsonResponse
+    {
+        abort_unless(in_array($request->user()->role, [UserRole::Owner, UserRole::Manager], true), 403);
+
+        if (! $session->isOpen()) {
+            return response()->json(['message' => 'Sesi kasir ini sudah ditutup.'], 422);
+        }
+
+        $validated = $request->validate([
+            'counted_cash' => ['required', 'integer', 'min:0', 'max:1000000000'],
+            'closing_note' => ['required', 'string', 'max:255'],
+        ]);
+
+        self::guardNoPendingPayments($session);
+        $closed = $service->close($session, (int) $validated['counted_cash'], $validated['closing_note'], $request->user());
+
+        AuditLog::record('cashier_session.force_closed', $closed, after: [
+            'counted_cash' => $closed->counted_cash,
+            'variance' => $closed->variance,
+        ], reason: $validated['closing_note'], actor: $request->user());
+
+        return response()->json([
+            'data' => $closed->fresh('cashier'),
+            'message' => 'Sesi kasir ditutup secara paksa dan tercatat di audit log.',
+        ]);
     }
 
     public function openSessionFor(?User $user): ?CashierSession

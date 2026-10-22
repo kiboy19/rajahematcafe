@@ -10,6 +10,8 @@
     $seo = app(App\Services\SeoService::class)->resolve(request()->path());
 
     $spaData = [
+        'midtransClientKey' => env('MIDTRANS_CLIENT_KEY'),
+        'isMidtransProduction' => (bool) env('MIDTRANS_IS_PRODUCTION', false),
         'user' => $staffUser && $staffUser->role ? [
             'id' => $staffUser->id,
             'name' => $staffUser->name,
@@ -56,9 +58,7 @@
         <meta name="{{ $name }}" content="{{ $content }}">
     @endforeach
 
-    @if($branding->faviconUrl())
-        <link rel="icon" href="{{ $branding->faviconUrl() }}">
-    @endif
+    <link rel="icon" type="image/svg+xml" href="{{ $branding->faviconUrl() }}">
 
     @foreach($seo['jsonLd'] as $schema)
         <script type="application/ld+json">

@@ -11,10 +11,27 @@ class OrderController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
+        $filters = $request->validate([
+            'status' => ['nullable', 'string', 'max:40'],
+            'metode' => ['nullable', 'string', 'max:20'],
+            'dari' => ['nullable', 'date'],
+            'sampai' => ['nullable', 'date'],
+            'per_page' => ['nullable', 'integer', 'between:10,100'],
+        ]);
+
         $orders = Order::query()
             ->withCount('items')
+            ->withSum(['payments as paid_total' => fn ($query) => $query->where('status', 'paid')], 'amount')
+            ->with(['cashier', 'customer'])
+            ->when($filters['status'] ?? null, fn ($query, $status) => $query->where('status', $status))
+            ->when($filters['metode'] ?? null, fn ($query, $method) => $query->whereHas(
+                'payments',
+                fn ($payment) => $payment->where('method', $method)->where('status', 'paid')
+            ))
+            ->when($filters['dari'] ?? null, fn ($query, $from) => $query->whereDate('placed_at', '>=', $from))
+            ->when($filters['sampai'] ?? null, fn ($query, $to) => $query->whereDate('placed_at', '<=', $to))
             ->latest('placed_at')
-            ->paginate(20)
+            ->paginate((int) ($filters['per_page'] ?? 20))
             ->withQueryString();
 
         return response()->json([

@@ -9,9 +9,7 @@ use App\Models\Category;
 use App\Models\Customer;
 use App\Models\MenuItem;
 use App\Models\Order;
-use App\Payments\Environment\FailClosedGuard;
 use App\Services\CustomerCheckoutService;
-use App\Services\MidtransGatewayService;
 use App\Services\MoneyCalculator;
 use App\Support\Cart;
 use Illuminate\Http\JsonResponse;
@@ -263,33 +261,6 @@ class CustomerOrderingController extends Controller
                 'payment' => $result->payment,
             ],
             'message' => $message,
-        ]);
-    }
-
-    /**
-     * Simulasi pelunasan pesanan (hanya local/testing) saat Midtrans belum
-     * dikonfigurasi. Di produksi, status lunas HANYA berasal dari webhook.
-     */
-    public function simulatePayment(Request $request, Order $order, MidtransGatewayService $gateway): JsonResponse
-    {
-        abort_unless(FailClosedGuard::allowsMockRoutes(), 404);
-
-        /** @var Customer $customer */
-        $customer = $request->user('customer');
-
-        if ($order->customer_id !== $customer->id) {
-            abort(404);
-        }
-
-        $gateway->simulateSettlement($customer, $order->number);
-
-        return response()->json([
-            'data' => [
-                'order_id' => $order->id,
-                'order_number' => $order->number,
-                'paid' => $order->fresh()->isFullyPaid(),
-            ],
-            'message' => 'Pembayaran simulasi berhasil. Pesanan dikirim ke dapur.',
         ]);
     }
 }

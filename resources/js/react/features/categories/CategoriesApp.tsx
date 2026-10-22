@@ -1,39 +1,7 @@
 import * as React from 'react';
 import { apiRequest, firstError, type ValidationErrors } from '@/react/lib/api';
-import { Button } from '@/react/components/ui/button';
-import { Input } from '@/react/components/ui/input';
-import { FormField } from '@/react/components/ui/label';
-import { Badge } from '@/react/components/ui/badge';
-import { Switch } from '@/react/components/ui/switch';
-import {
-    Table,
-    TableWrap,
-    TableHeader,
-    TableBody,
-    TableRow,
-    TableHead,
-    TableCell,
-} from '@/react/components/ui/table';
-import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-    DialogDescription,
-    DialogFooter,
-} from '@/react/components/ui/dialog';
-import {
-    AlertDialog,
-    AlertDialogContent,
-    AlertDialogHeader,
-    AlertDialogTitle,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogAction,
-    AlertDialogCancel,
-} from '@/react/components/ui/alert-dialog';
 import { Plus, Pencil, Trash2, Search, ArrowUpDown, Loader2, ImageIcon } from 'lucide-react';
-import { ImageUpload } from '@/react/components/ui/image-upload';
+import { Button, Input, FormField, Badge, Switch, Table, TableWrap, TableHeader, TableBody, TableRow, TableHead, TableCell, Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogAction, AlertDialogCancel, ImageUpload } from '../../spa/ui-primitives';
 
 export interface Category {
     id: number;

@@ -25,12 +25,17 @@ class WalletController extends Controller
         $customer = $phone === '' ? null : Customer::query()->where('phone', $phone)->first();
 
         $session = CashierSession::openFor($request->user());
+        $active = CashierSession::active();
+        $active?->load('cashier');
 
         return response()->json([
             'data' => [
                 'phone' => $phone,
                 'customer' => $customer,
                 'session' => $session,
+                'activeSession' => $active ? $active->only(['id', 'status', 'opened_at', 'opening_float']) + [
+                    'cashier' => $active->cashier?->only(['id', 'name']),
+                ] : null,
                 'minTopup' => (int) config('pos.wallet_min_topup'),
                 'dailyLimit' => (int) config('pos.wallet_daily_topup_limit'),
                 'todayTopups' => $customer

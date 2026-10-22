@@ -17,6 +17,7 @@ use GuzzleHttp\Psr7\Request as HttpRequest;
 use GuzzleHttp\Psr7\Response;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\Support\FakeClock;
 use Tests\TestCase;
 
@@ -31,20 +32,23 @@ class ProviderClientErrorClassificationTest extends TestCase
         parent::setUp();
 
         $this->clock = new FakeClock;
-        DB::table('gateway_circuit_state')->where('id', 1)->update([
-            'state' => CircuitState::Closed->value,
-            'failure_count' => 0,
-            'window_started_at_ms' => 0,
-            'half_open_probes_in_flight' => 0,
-            'opened_at_ms' => 0,
-            'version' => 0,
-        ]);
+        DB::table('gateway_circuit_state')->updateOrInsert(
+            ['id' => 1],
+            [
+                'state' => CircuitState::Closed->value,
+                'failure_count' => 0,
+                'window_started_at_ms' => 0,
+                'half_open_probes_in_flight' => 0,
+                'opened_at_ms' => 0,
+                'version' => 0,
+            ]
+        );
     }
 
     /** @return array{0: HttpMidtransClient, 1: CircuitBreaker, 2: list<array<string, mixed>>} */
     private function makeClient(array $queue, int $threshold = 5): array
     {
-        $container = [];
+        $container = new \ArrayObject;
         $history = Middleware::history($container);
         $stack = HandlerStack::create(new MockHandler($queue));
         $stack->push($history);
@@ -61,7 +65,7 @@ class ProviderClientErrorClassificationTest extends TestCase
             new Client(['handler' => $stack]),
         );
 
-        return [$client, $breaker, array_values($container)];
+        return [$client, $breaker, $container];
     }
 
     private static function jsonResponse(int $status, array $body): Response
@@ -119,9 +123,7 @@ class ProviderClientErrorClassificationTest extends TestCase
         $this->assertCount(2, $container);
     }
 
-    /**
-     * @dataProvider retryableStatusProvider
-     */
+    #[DataProvider('retryableStatusProvider')]
     public function test_retryable_4xx_status_is_unavailable_and_retried_once(int $status): void
     {
         [$client, , $container] = $this->makeClient([
@@ -156,9 +158,7 @@ class ProviderClientErrorClassificationTest extends TestCase
         $this->assertSame(1, (int) DB::table('gateway_circuit_state')->where('id', 1)->value('failure_count'));
     }
 
-    /**
-     * @dataProvider nonRetryableStatusProvider
-     */
+    #[DataProvider('nonRetryableStatusProvider')]
     public function test_non_retryable_4xx_is_rejected_without_retry(int $status): void
     {
         [$client, , $container] = $this->makeClient([
@@ -193,7 +193,7 @@ class ProviderClientErrorClassificationTest extends TestCase
     public function test_circuit_opens_at_threshold_then_rejects_without_calling_provider(): void
     {
         [$client, $breaker, $container] = $this->makeClient(
-            array_fill(0, 5, self::jsonResponse(500, ['message' => 'down'])),
+            array_fill(0, 10, self::jsonResponse(500, ['message' => 'down'])),
             threshold: 5,
         );
 
@@ -216,7 +216,7 @@ class ProviderClientErrorClassificationTest extends TestCase
     public function test_half_open_success_closes_circuit(): void
     {
         [$client, $breaker] = $this->makeClient([
-            ...array_fill(0, 5, self::jsonResponse(500, ['message' => 'down'])),
+            ...array_fill(0, 10, self::jsonResponse(500, ['message' => 'down'])),
             self::jsonResponse(200, ['token' => 'snap-tok-half-open']),
         ]);
 
@@ -237,8 +237,9 @@ class ProviderClientErrorClassificationTest extends TestCase
     public function test_half_open_failure_reopens_circuit(): void
     {
         [$client, $breaker] = $this->makeClient([
-            ...array_fill(0, 5, self::jsonResponse(500, ['message' => 'down'])),
-            self::jsonResponse(500, ['message' => 'down']),
+            ...array_fill(0, 10, self::jsonResponse(500, ['message' => 'down'])),
+            self::jsonResponse(503, ['message' => 'down']),
+            self::jsonResponse(503, ['message' => 'down']),
         ]);
 
         for ($i = 1; $i <= 5; $i++) {

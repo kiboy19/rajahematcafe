@@ -25,6 +25,7 @@ use App\Http\Controllers\PostController;
 use App\Http\Controllers\PostMediaController;
 use App\Http\Controllers\PublicAnalyticsController;
 use App\Http\Controllers\PublicBlogController;
+use App\Http\Controllers\PublicContactController;
 use App\Http\Controllers\PublicSiteController;
 use App\Http\Controllers\PurchaseOrderController;
 use App\Http\Controllers\ReportController;
@@ -68,10 +69,14 @@ Route::group([], function () {
         Route::get('/sesi-kasir', [CashierSessionController::class, 'show'])->name('api.cashier.session');
         Route::post('/sesi-kasir/buka', [CashierSessionController::class, 'open'])->name('api.cashier.session.open');
         Route::post('/sesi-kasir/tutup', [CashierSessionController::class, 'close'])->name('api.cashier.session.close');
+        Route::post('/sesi-kasir/{session}/tutup-paksa', [CashierSessionController::class, 'forceClose'])
+            ->middleware('role:owner,manager')
+            ->name('api.cashier.session.force-close');
 
         Route::get('/pesanan', [OrderController::class, 'index'])->name('api.orders.index');
         Route::get('/pesanan/{order}', [OrderController::class, 'show'])->name('api.orders.show');
         Route::get('/pesanan/{order}/struk', [OrderController::class, 'receipt'])->name('api.orders.receipt');
+        Route::post('/pesanan/{order}/bayar/midtrans', [PaymentController::class, 'initiateMidtrans'])->middleware('throttle:30,1')->name('api.orders.pay.midtrans');
         Route::post('/pesanan/{order}/bayar', [PaymentController::class, 'store'])->middleware('throttle:60,1')->name('api.orders.pay');
         Route::delete('/pesanan/{order}/bayar/{payment}', [PaymentVoidController::class, 'store'])->middleware('role:owner,manager')->name('api.orders.pay.void');
 
@@ -158,6 +163,9 @@ Route::group([], function () {
     // Halaman publik website — tanpa guard.
     Route::get('/publik/beranda', [PublicSiteController::class, 'home'])->name('api.public.site.home');
     Route::get('/publik/menu', [PublicSiteController::class, 'menu'])->name('api.public.site.menu');
+    Route::post('/publik/kontak', [PublicContactController::class, 'store'])
+        ->middleware('throttle:5,1')
+        ->name('api.public.contact.store');
 
     // Analitik kunjungan halaman publik (beacon). Throttle 30/menit per IP.
     Route::post('/publik/analitik', [PublicAnalyticsController::class, 'store'])
@@ -171,8 +179,6 @@ Route::group([], function () {
         Route::get('/akun/pesanan/{order}', [CustomerOrderController::class, 'show'])->name('api.customer.order.show');
         Route::post('/akun/saldo/topup', [CustomerWalletController::class, 'topUp'])
             ->middleware('throttle:20,1')->name('api.customer.wallet.topup');
-        Route::post('/akun/saldo/topup-simulasi', [CustomerWalletController::class, 'simulateTopUp'])
-            ->name('api.customer.wallet.topup.simulate');
 
         // Inisiasi pembayaran Snap (R8.1–R8.6): ownership-scoped, idempotent.
         Route::post('/orders/{order}/pay', [PaymentInitiationController::class, 'order'])
@@ -188,7 +194,6 @@ Route::group([], function () {
             Route::delete('/meja/keranjang', [CustomerOrderingController::class, 'clearCart'])->name('api.customer.cart.clear');
             Route::post('/meja/pesan', [CustomerOrderingController::class, 'checkout'])->middleware('throttle:30,1')->name('api.customer.checkout');
             Route::post('/meja/pesanan/{order}/bayar', [CustomerOrderingController::class, 'pay'])->middleware('throttle:30,1')->name('customer.order.pay.store');
-            Route::post('/meja/pesanan/{order}/bayar-simulasi', [CustomerOrderingController::class, 'simulatePayment'])->middleware('throttle:30,1')->name('customer.order.pay.simulate');
         });
     });
 });
