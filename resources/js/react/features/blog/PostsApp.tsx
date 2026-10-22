@@ -20,13 +20,6 @@ export interface PostItem {
     author?: { id: number; name: string } | null;
 }
 
-interface PaginatedPosts {
-    data: PostItem[];
-    current_page: number;
-    last_page: number;
-    total: number;
-}
-
 const CATEGORIES = [
     { value: 'umum', label: 'Umum' },
     { value: 'berita', label: 'Berita' },
@@ -35,8 +28,8 @@ const CATEGORIES = [
     { value: 'promo', label: 'Promo' },
 ];
 
-export function PostsApp({ initialData }: { initialData?: PaginatedPosts }) {
-    const [posts, setPosts] = React.useState<PostItem[]>(initialData?.data ?? []);
+export function PostsApp({ initialData }: { initialData?: PostItem[] }) {
+    const [posts, setPosts] = React.useState<PostItem[]>(initialData ?? []);
     const [search, setSearch] = React.useState('');
     const [statusFilter, setStatusFilter] = React.useState<string>('all');
     const [loading, setLoading] = React.useState(false);
@@ -72,11 +65,11 @@ export function PostsApp({ initialData }: { initialData?: PaginatedPosts }) {
         if (search) params.set('search', search);
         if (statusFilter !== 'all') params.set('status', statusFilter);
 
-        const res = await apiRequest<PaginatedPosts>('GET', `/api/kelola-blog?${params.toString()}`);
+        const res = await apiRequest<PostItem[]>('GET', `/api/kelola-blog?${params.toString()}`);
         setLoading(false);
 
         if (res.ok && res.data) {
-            setPosts(res.data.data ?? []);
+            setPosts(Array.isArray(res.data) ? res.data : ((res.data as any).data ?? []));
         }
     }
 

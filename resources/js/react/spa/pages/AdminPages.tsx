@@ -66,7 +66,7 @@ export function AdminPages({ kind }: { kind: AdminKind }) {
         case 'branding':
             return <BrandingApp initialSettings={data ?? ({} as never)} />;
         case 'blog':
-            return <PostsApp initialData={value} />;
+            return <PostsApp initialData={Array.isArray(data) ? data : (value.data ?? [])} />;
         case 'analytics':
             return <AnalyticsApp initialData={(data ?? root.data) as never} />;
         case 'inventory':
