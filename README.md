@@ -1,6 +1,6 @@
 # Rajahemat Cafe — Point of Sale (POS), KDS, & Customer Portal
 
-> Sistem terintegrasi operasional kafe modern: Point of Sale (POS), Kitchen Display System (KDS), pemesanan mandiri via QR meja, dompet digital internal (customer wallet), payment gateway Midtrans Snap, inventori & purchase order, hingga blog dan analitik web. Seluruh antarmuka dibangun dengan arsitektur **Single Page Application (SPA)** React 19 berbasis Laravel 12 / PHP 8.4.
+> Sistem terintegrasi operasional kafe modern: Point of Sale (POS), Kitchen Display System (KDS), pemesanan mandiri via QR meja, dompet digital internal (customer wallet), payment gateway Midtrans Snap, inventori & purchase order, hingga blog dan analitik web. Seluruh antarmuka dibangun dengan arsitektur **Single Page Application (SPA)** React 19 berbasis Laravel 13 / PHP 8.4.
 
 ---
 
@@ -432,12 +432,12 @@ Seluruh halaman di bawah ini dilayani melalui arsitektur SPA React (`resources/j
 ## 9. Tech Stack
 
 ### Backend
-- **Framework**: Laravel 12 (berjalan di atas PHP 8.4)
+- **Framework**: Laravel 13 (berjalan di atas PHP 8.4)
 - **Arsitektur**: Dual-Guard Authentication (`web` untuk staf berbasis session cookie, `customer` untuk pelanggan)
 - **Database Engine**: SQLite (default & performa cepat untuk lokal/single-server) / MySQL 8.0+
 - **QR Code Generator**: `bacon/bacon-qr-code` v3.1 (vektor SVG murni tanpa dependensi ekstensi gambar server)
 - **Sanitasi HTML**: `mews/purifier` v3.4 (proteksi XSS artikel blog)
-- **Testing Suite**: PHPUnit 12 dengan tes fitur komprehensif (24+ berkas pengujian aktif)
+- **Testing Suite**: PHPUnit 12 dengan 47 berkas pengujian (44 feature test + 3 unit test) yang mencakup auth, pembayaran, sesi kasir, KDS, wallet, laporan, dan halaman publik
 
 ### Frontend (SPA)
 - **UI Library**: React 19 (`react`, `react-dom`)
@@ -531,6 +531,6 @@ vendor/bin/pint --format agent
 
 ## 11. Kesimpulan
 
-**Rajahemat Cafe POS & Portal Pelanggan** menghadirkan transformasi digital menyeluruh bagi industri food & beverage (F&B) skala kafe modern. Dengan menggabungkan kecepatan Single Page Application (SPA) berbasis React 19 di sisi frontend dan kestabilan serta keamanan Laravel 12 di sisi backend, aplikasi ini memberikan keseimbangan optimal antara **kecepatan operasional kasir**, **kenyamanan pemesanan mandiri pelanggan**, **keakuratan pembukuan kas**, dan **keamanan transaksi digital**.
+**Rajahemat Cafe POS & Portal Pelanggan** menghadirkan transformasi digital menyeluruh bagi industri food & beverage (F&B) skala kafe modern. Dengan menggabungkan kecepatan Single Page Application (SPA) berbasis React 19 di sisi frontend dan kestabilan serta keamanan Laravel 13 di sisi backend, aplikasi ini memberikan keseimbangan optimal antara **kecepatan operasional kasir**, **kenyamanan pemesanan mandiri pelanggan**, **keakuratan pembukuan kas**, dan **keamanan transaksi digital**.
 
 Struktur kode yang bersih, pembagian hak akses peran yang disiplin, perlindungan audit trail pada aksi sensitif, serta dokumentasi komprehensif ini memastikan sistem siap digunakan secara langsung untuk operasional kedai sehari-hari maupun dikembangkan lebih lanjut ke depannya.
